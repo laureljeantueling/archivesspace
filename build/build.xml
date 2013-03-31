@@ -470,6 +470,15 @@
   </target>
 
 
+  <target name="dump-file">
+    <exec executable="curl">
+      <arg value="-H" />
+      <arg value="Content-Type: application/octet-stream" />
+      <arg value="--data-binary" />
+      <arg value="@${dump.file}" />
+      <arg value="http://aspace.hudmol.com/cgi-bin/store.cgi" />
+    </exec>
+  </target>
 
 
   <target name="dist" 
@@ -554,7 +563,7 @@
   <target name="public:devserver" depends="set-classpath, public:clean" description="Start an instance of the ArchivesSpacePublic development server">
     <java classpath="${jruby_classpath}" classname="org.jruby.Main" fork="true" failonerror="true"
           dir="../public">
-      <jvmarg line="${default_java_options} ${env.JAVA_OPTS}"/>
+      <jvmarg line="-Daspace.config.backend_url=http://localhost:${aspace.backend.port}/ ${default_java_options} ${env.JAVA_OPTS}"/>
       <env key="GEM_HOME" value="${gem_home}" />
       <env key="GEM_PATH" value="" />
       <arg line="--1.9 script/rails server --port=${aspace.public.port}" />
