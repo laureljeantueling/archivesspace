@@ -13,6 +13,8 @@
 
       "title" => {"ifmissing" => nil},
       "title_auto_generate" => {"type" => "boolean", "default" => false},
+      
+      "internal_only" => {"type" => "boolean", "default" => false},
 
       "parent" => {
         "type" => "object",
