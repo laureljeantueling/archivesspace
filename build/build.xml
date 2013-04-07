@@ -2,8 +2,8 @@
 
 <project name="ArchivesSpace" default="help">
 
-  <property name="jruby_url" value="http://jruby.org.s3.amazonaws.com/downloads/1.7.0/jruby-complete-1.7.0.jar" />
-  <property name="jruby_file" value="jruby-complete-1.7.0.jar" />
+  <property name="jruby_url" value="http://jruby.org.s3.amazonaws.com/downloads/1.7.3/jruby-complete-1.7.3.jar" />
+  <property name="jruby_file" value="jruby-complete-1.7.3.jar" />
 
   <property name="solr_url" value="http://repo1.maven.org/maven2/org/apache/solr/solr/4.0.0/solr-4.0.0.war" />
   <property name="solr_file" value="solr-4.0.0.war" />
@@ -65,6 +65,20 @@
   </target>
 
 
+  <target name="bundler" description="Run bundler against a gemfile" >
+    <property name="build.home" location="."/>
+
+    <echo message="Fetching gems for ${gemfile}" />
+
+    <java classpath="${jruby_file}" classname="org.jruby.Main" fork="true" failonerror="true">
+      <jvmarg line="${default_java_options} ${env.JAVA_OPTS}"/>
+      <env key="GEM_HOME" value="${gem_home}" />
+      <env key="GEM_PATH" value="" />
+      <env key="HOME" value="${build.home}" />
+      <arg line="--1.9 gems/bin/bundle install --gemfile='${gemfile}'" />
+    </java>
+  </target>
+
   <target name="bootstrap" depends="bootstrap-downloads" description="Download JRuby and install all required gems">
     <delete dir="gems/gems" />
     <delete dir="gems/specifications" />
@@ -79,69 +93,14 @@
       <arg line="--1.9 -S gem install bundler" />
     </java>
 
-    <java classpath="${jruby_file}" classname="org.jruby.Main" fork="true" failonerror="true">
-      <jvmarg line="${default_java_options} ${env.JAVA_OPTS}"/>
-      <env key="GEM_HOME" value="${gem_home}" />
-      <env key="GEM_PATH" value="" />
-      <env key="HOME" value="${build.home}" />
-      <arg line="--1.9 gems/bin/bundle install --gemfile='../backend/Gemfile'" />
-    </java>
-
-    <java classpath="${jruby_file}" classname="org.jruby.Main" fork="true" failonerror="true">
-      <jvmarg line="${default_java_options} ${env.JAVA_OPTS}"/>
-      <env key="GEM_HOME" value="${gem_home}" />
-      <env key="GEM_PATH" value="" />
-      <env key="HOME" value="${build.home}" />
-      <arg line="--1.9 gems/bin/bundle install --gemfile='../frontend/Gemfile'" />
-    </java>
-
-    <java classpath="${jruby_file}" classname="org.jruby.Main" fork="true" failonerror="true">
-      <jvmarg line="${default_java_options} ${env.JAVA_OPTS}"/>
-      <env key="GEM_HOME" value="${gem_home}" />
-      <env key="GEM_PATH" value="" />
-      <env key="HOME" value="${build.home}" />
-      <arg line="--1.9 gems/bin/bundle install --gemfile='../selenium/Gemfile'" />
-    </java>
-
-    <java classpath="${jruby_file}" classname="org.jruby.Main" fork="true" failonerror="true">
-      <jvmarg line="${default_java_options} ${env.JAVA_OPTS}"/>
-      <env key="GEM_HOME" value="${gem_home}" />
-      <env key="GEM_PATH" value="" />
-      <env key="HOME" value="${build.home}" />
-      <arg line="--1.9 gems/bin/bundle install --gemfile='../_yard/Gemfile'" />
-    </java>
-
-    <java classpath="${jruby_file}" classname="org.jruby.Main" fork="true" failonerror="true">
-      <jvmarg line="${default_java_options} ${env.JAVA_OPTS}"/>
-      <env key="GEM_HOME" value="${gem_home}" />
-      <env key="GEM_PATH" value="" />
-      <env key="HOME" value="${build.home}" />
-      <arg line="--1.9 gems/bin/bundle install --gemfile='../migrations/Gemfile'" />
-    </java>
-
-    <java classpath="${jruby_file}" classname="org.jruby.Main" fork="true" failonerror="true">
-      <jvmarg line="${default_java_options} ${env.JAVA_OPTS}"/>
-      <env key="GEM_HOME" value="${gem_home}" />
-      <env key="GEM_PATH" value="" />
-      <env key="HOME" value="${build.home}" />
-      <arg line="--1.9 gems/bin/bundle install --gemfile='../public/Gemfile'" />
-    </java>
-
-    <java classpath="${jruby_file}" classname="org.jruby.Main" fork="true" failonerror="true">
-      <jvmarg line="${default_java_options} ${env.JAVA_OPTS}"/>
-      <env key="GEM_HOME" value="${gem_home}" />
-      <env key="GEM_PATH" value="" />
-      <env key="HOME" value="${build.home}" />
-      <arg line="--1.9 gems/bin/bundle install --gemfile='../selenium-public/Gemfile'" />
-    </java>
-
-    <java classpath="${jruby_file}" classname="org.jruby.Main" fork="true" failonerror="true">
-      <jvmarg line="${default_java_options} ${env.JAVA_OPTS}"/>
-      <env key="GEM_HOME" value="${gem_home}" />
-      <env key="GEM_PATH" value="" />
-      <env key="HOME" value="${build.home}" />
-      <arg line="--1.9 gems/bin/bundle install --gemfile='../indexer/Gemfile'" />
-    </java>
+    <antcall target="bundler"><param name="gemfile" value="../backend/Gemfile" /></antcall>
+    <antcall target="bundler"><param name="gemfile" value="../frontend/Gemfile" /></antcall>
+    <antcall target="bundler"><param name="gemfile" value="../selenium/Gemfile" /></antcall>
+    <antcall target="bundler"><param name="gemfile" value="../_yard/Gemfile" /></antcall>
+    <antcall target="bundler"><param name="gemfile" value="../migrations/Gemfile" /></antcall>
+    <antcall target="bundler"><param name="gemfile" value="../public/Gemfile" /></antcall>
+    <antcall target="bundler"><param name="gemfile" value="../selenium-public/Gemfile" /></antcall>
+    <antcall target="bundler"><param name="gemfile" value="../indexer/Gemfile" /></antcall>
   </target>
 
 
@@ -225,11 +184,12 @@
 
   <target name="backend:devserver" depends="set-classpath, setup-solr" description="Start an instance of the ArchivesSpace backend development server">
     <delete dir="integration.tmp" />
+    <mkdir dir="${java.io.tmpdir}/winstone.${user.name}" />
     <parallel>
       <daemons>
         <java classpath="${winstone_file}:../solr"
               classname="winstone.Launcher" fork="true">
-          <jvmarg line="${solr.properties}" />
+          <jvmarg line="${solr.properties} -Djava.io.tmpdir=${java.io.tmpdir}/winstone.${user.name}" />
           <arg line="--warfile=${solr_file} --httpPort=${aspace.solr.port} --ajp13Port=-1" />
         </java>
       </daemons>
@@ -438,8 +398,8 @@
   </target>
 
 
-  <target name="doc:yard" description="Generate the full YARD documentation">
-    <java classpath="${jruby_file}" classname="org.jruby.Main" fork="true"
+  <target name="doc:yard" depends="set-classpath" description="Generate the full YARD documentation">
+    <java classpath="${jruby_classpath}" classname="org.jruby.Main" fork="true"
           failonerror="true"
           dir="../_yard">
       <jvmarg line="${default_java_options} ${env.JAVA_OPTS}"/>
@@ -450,8 +410,8 @@
   </target>
 
 
-  <target name="doc:yardoc" description="Run the yardoc command">
-    <java classpath="${jruby_file}" classname="org.jruby.Main" fork="true"
+  <target name="doc:yardoc" depends="set-classpath" description="Run the yardoc command">
+    <java classpath="${jruby_classpath}" classname="org.jruby.Main" fork="true"
           failonerror="true"
           dir="..">
       <jvmarg line="${default_java_options} ${env.JAVA_OPTS}"/>
@@ -459,7 +419,8 @@
       <env key="GEM_PATH" value="" />
       <arg line="--1.9 build/gems/bin/yardoc" />
     </java>
-    <java classpath="${jruby_file}" classname="org.jruby.Main" fork="true"
+
+    <java classpath="${jruby_classpath}" depends="set-classpath" classname="org.jruby.Main" fork="true"
           failonerror="true"
           dir="..">
       <jvmarg line="${default_java_options} ${env.JAVA_OPTS}"/>
@@ -526,8 +487,10 @@
       <zipfileset dir="target" excludes="**/mysql-connector-java*.jar" />
       <zipfileset dir=".." includes="README.md" prefix="archivesspace" filemode="644" />
       <zipfileset dir=".." includes="COPYING" prefix="archivesspace" filemode="644" />
+      <zipfileset dir="../clustering" prefix="archivesspace/clustering" filemode="755" />
       <zipfileset dir="../launcher" includes="archivesspace.sh" prefix="archivesspace" filemode="755" />
       <zipfileset dir="../launcher" includes="archivesspace.bat" prefix="archivesspace" filemode="644" />
+      <zipfileset dir="../launcher/scripts" includes="find-base.sh" prefix="archivesspace/scripts" filemode="755" />
       <zipfileset dir="../launcher/scripts" includes="setup-database.sh" prefix="archivesspace/scripts" filemode="755" />
       <zipfileset dir="../launcher/scripts" includes="setup-database.bat" prefix="archivesspace/scripts" filemode="755" />
       <zipfileset dir="../launcher/tomcat" includes="configure-tomcat.sh" prefix="archivesspace/scripts" filemode="755" />

@@ -62,20 +62,12 @@ class ArchivesSpaceService < Sinatra::Base
                     :enum_source => BackendEnumSource)
 
 
-    unless DB.connected?
-      puts "\n============================================\n"
-      puts "DATABASE CONNECTION FAILED"
-      puts ""
-      puts "This system isn't going to do very much until its database turns up."
-      puts ""
-      puts "You will need to specify your database in:\n\n"
-      puts "  #{AppConfig.find_user_config}"
-      puts "\nor point your browser to the '/setup' URL on the backend (e.g. http://localhost:4567/setup)"
-      puts "\n============================================\n"
-    end
-
     # We'll handle these ourselves
     disable :sessions
+
+    set :raise_errors, Proc.new { false }
+    set :show_exceptions, false
+    set :logging, false
 
     if DB.connected?
       # Load all models
@@ -144,6 +136,15 @@ class ArchivesSpaceService < Sinatra::Base
             Log.info("Backup of embedded demo database completed!")
           end
         end
+
+        if AppConfig[:solr_backup_schedule] && AppConfig[:solr_backup_number_to_keep] > 0
+          settings.scheduler.cron(AppConfig[:solr_backup_schedule],
+                                  :tags => 'solr_backup') do
+            Log.info("Creating snapshot of Solr index and indexer state")
+            Solr.snapshot
+          end
+        end
+
       end
 
       @loaded_hooks.each do |hook|
@@ -151,22 +152,18 @@ class ArchivesSpaceService < Sinatra::Base
       end
       @archivesspace_loaded = true
 
-    else
-      # Just load the setup controller
-      load File.absolute_path(File.join(File.dirname(__FILE__), "controllers", "setup.rb"))
-    end
 
-    set :raise_errors, Proc.new { false }
-    set :show_exceptions, false
-    set :logging, false
-
-
-    if DB.connected?
       ANONYMOUS_USER = AnonymousUser.new
 
       require_relative "lib/bootstrap_access_control"
 
       Notifications.notify("BACKEND_STARTED")
+
+    else
+      Log.error("***** DATABASE CONNECTION FAILED *****\n" +
+                "\n" +
+                "ArchivesSpace could not connect to your specified database URL (#{AppConfig[:db_url]}).\n\n" +
+                "Please check your configuration and try again.")
     end
 
     # Setup public static file sharing

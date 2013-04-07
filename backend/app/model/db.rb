@@ -2,6 +2,9 @@ require 'fileutils'
 
 class DB
 
+  Sequel.database_timezone = :utc
+  Sequel.typecast_timezone = :utc
+
   SUPPORTED_DATABASES = [
                          {
                            :pattern => /jdbc:mysql/,
@@ -167,7 +170,7 @@ these supported databases:
 eof
 
       SUPPORTED_DATABASES.each do |db|
-        msg += "  * #{db[:name]}"
+        msg += "  * #{db[:name]}\n"
       end
 
       msg += "\n"
