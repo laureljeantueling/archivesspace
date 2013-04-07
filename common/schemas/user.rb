@@ -14,6 +14,14 @@
         "readonly" => true,
       },
       
+      "email" => {"type" => "string", "maxLength" => 255},
+      "first_name" => {"type" => "string", "maxLength" => 255},
+      "last_name" => {"type" => "string", "maxLength" => 255},
+      "telephone" => {"type" => "string", "maxLength" => 255},
+      "title" => {"type" => "string", "maxLength" => 255},
+      "department" => {"type" => "string", "maxLength" => 255},
+      "additional_contact" => {"type" => "string", "maxLength" => 32672},
+      
       "agent_record" => {
         "type" => "object",
         "readonly" => true,
