@@ -34,18 +34,6 @@ require_relative "../lib/bootstrap"
 require_relative "../../backend/app/lib/request_context"
 
 
-class MockEnumSource
-
-  def self.valid?(enum_name, value)
-    [true, false].sample
-  end
-
-  def self.values_for(enum_name)
-    %w{alpha beta epsilon}
-  end
-
-end
-
 JSONModel::init( { :strict_mode => true, :enum_source => MockEnumSource, :client_mode => true, :url => $backend_url} )
 
 

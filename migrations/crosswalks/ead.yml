@@ -4,9 +4,55 @@
 source:
   format: "xml"
   schema: "http://www.loc.gov/ead/ead.xsd"
+  
+# Shortcut mappings based soley on the node name. If the parser
+# encounters a node with a name matching the key, it will
+# open a new entity and proceed.
+mappings:
+  ead: resource
+  bibliography: note_bibliography
+  index: note_index
+  accessrestrict: note_multipart
+  accruals: note_multipart
+  acqinfo: note_multipart
+  altformavail: note_multipart
+  appraisal: note_multipart
+  arrangement: note_multipart
+  bioghist: note_multipart
+  custodhist: note_multipart
+  fileplan: note_multipart
+  odd: note_multipart
+  otherfindaid: note_multipart
+  originalsloc: note_multipart
+  phystech: note_multipart
+  prefercite: note_multipart
+  processinfo: note_multipart
+  relatedmaterial: note_multipart
+  scopecontent: note_multipart
+  separatedmaterial: note_multipart
+  userestrict: note_multipart
+  c: archival_object
+  c01: archival_object
+  c02: archival_object
+  c03: archival_object
+  c04: archival_object
+  c05: archival_object
+  c06: archival_object
+  c07: archival_object
+  c08: archival_object
+  c09: archival_object
+  c10: archival_object
+  c11: archival_object
+  c12: archival_object
+  container: container
+  subject: subject
+  persname: agent_person
+  corpname: agent_corporate_entity  
+    
+  
 entities:
   resource: 
-    xpath: ["//ead"]
+    # xpath: ["//ead"]
     properties:
       id_0: 
         xpath: ["child::*/child::*/child::unitid"]
@@ -53,7 +99,7 @@ entities:
         axis: "descendant"
  
   note_bibliography:
-    xpath: ["//bibliography"]
+    # xpath: ["//bibliography"]
     properties:
       label:
         default: "just a default note label"
@@ -62,7 +108,7 @@ entities:
         xpath: ["self"]
   
   note_index:
-    xpath: ["//index"]
+    # xpath: ["//index"]
     properties:
       label:
         default: "just a default note label"
@@ -71,7 +117,7 @@ entities:
         xpath: ["self"]
 
   note_multipart:
-    xpath: [ "//accessrestrict", "//accruals", "//acqinfo", "//altformavail", "//appraisal", "//arrangement", "//bioghist", "//custodhist", "//fileplan", "//odd", "//otherfindaid", "//originalsloc", "//phystech", "//prefercite", "//processinfo", "//relatedmaterial", "//scopecontent", "//separatedmaterial", "//userestrict"]
+    # xpath: [ "//accessrestrict", "//accruals", "//acqinfo", "//altformavail", "//appraisal", "//arrangement", "//bioghist", "//custodhist", "//fileplan", "//odd", "//otherfindaid", "//originalsloc", "//phystech", "//prefercite", "//processinfo", "//relatedmaterial", "//scopecontent", "//separatedmaterial", "//userestrict"]
     properties: 
       label:
         default: "just a default note label"
@@ -82,8 +128,9 @@ entities:
       type:
         xpath: ["self::name"]
 
-  archival_object: 
-    xpath: ["//c", "//c01", "//c02", "//c03", "//c04", "//c05", "//c06", "//c07", "//c08", "//c09", "//c10", "//c11", "//c12"]
+  archival_object:
+    # name: ["c", "c01", "c02", "c03", "c04", "c05", "c06", "c07", "c08", "c09", "c10", "c11", "c12"]
+    # xpath: ["//c", "//c01", "//c02", "//c03", "//c04", "//c05", "//c06", "//c07", "//c08", "//c09", "//c10", "//c11", "//c12"]
     properties:
       dates:
         xpath: ["*/unitdate"]
@@ -100,6 +147,7 @@ entities:
         
       instances:
         xpath: ["child::*/child::container"]
+        # axis: descendant
         procedure: "|val| {'instance_type' => 'text', 'container' => val.to_hash}"
         # procedure: "|val| if val.match(/container.*?type=\"([a-zA-Z]*)\"/);  c = {}; val.scan(/container.*?type=\"([a-zA-Z]*)\"/).each_with_index {|t, i| c.merge!({\"type_#{i+1}\" => t[0], \"indicator_#{i+1}\" => '1', \"barcode_#{i+1}\" => '10001'})}; {'instance_type' => 'text', 'container' => c}; end"
         # if val.match(/container.*?type=([a-zA-Z]*)/); {'instance_type' => 'text', 'container' => {'type_1' => val.match(/container.*?type=([a-zA-Z]*)/)[0], 'indicator_1' => '1', 'barcode_1' => '10001'}}; end"
@@ -135,7 +183,7 @@ entities:
         default: "Archival Object"
         
   container:
-    xpath: ["//container"]
+    # xpath: ["//container"]
     properties:
       type_1: 
         xpath: ["@type"]
@@ -146,12 +194,9 @@ entities:
         
       barcode_1: 
         default: "10101010"
-    # a provisional attribute:
-      # _parent:
-        # xpath: ["@parent"]
     
   subject:
-    xpath: ["//subject"]
+    # xpath: ["//subject"]
     properties:
       terms: 
         xpath: ["self"]
@@ -160,7 +205,7 @@ entities:
         default: "/vocabularies/1"
         
   agent_person:
-    xpath: ["//persname"]
+    # xpath: ["//persname"]
     properties:
       agent_type:
         default: "agent_person"
@@ -170,7 +215,7 @@ entities:
         procedure: "|value| {'rules' => 'local', 'primary_name' => value, 'sort_name' => value, 'name_order' => 'direct'}"
 
   agent_corporate_entity:
-    xpath: ["//corpname"]
+    # xpath: ["//corpname"]
     properties:
       agent_type:
         default: "agent_corporate_entity"    

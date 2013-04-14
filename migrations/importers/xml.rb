@@ -1,6 +1,7 @@
 require 'psych'
 require 'nokogiri'
-require 'rufus-lru'
+
+require 'jruby/profiler'
 
 ASpaceImport::Importer.importer :xml do
 
@@ -9,11 +10,12 @@ ASpaceImport::Importer.importer :xml do
     # TODO:
     # validate(opts[:input_file]) 
     
-    hack_input_file_for_nokogiri_exceptions(opts)
+    # hack_input_file_for_nokogiri_exceptions(opts)
 
     @reader = Nokogiri::XML::Reader(IO.read(opts[:input_file]))
-    @regex_cache = Rufus::Lru::Hash.new(10000)
     @attr_selectors = []
+    
+    $debug = opts[:debug]
     
     # Allow JSON Models to hold some Nokogiri info
     ASpaceImport::Crosswalk.models.each do |key, model|
@@ -61,7 +63,7 @@ ASpaceImport::Importer.importer :xml do
       end
     })
     
-    set_up_tracer if $DEBUG   
+    set_up_tracer if $debug  
       
     super
 
@@ -79,7 +81,7 @@ ASpaceImport::Importer.importer :xml do
 
       add_xpath(node)
 
-      node.start_trace if $DEBUG
+      node.start_trace if @debug
 
       case node.node_type
 
@@ -121,11 +123,7 @@ ASpaceImport::Importer.importer :xml do
       end
       
       parse_queue.unraise_all  
-      
-    
-      # parse_queue.last.set_default_properties
 
-      # parse_queue.pop
     end
   end
   
@@ -192,7 +190,7 @@ ASpaceImport::Importer.importer :xml do
 
           json.xpath, json.depth = node.xpath, node.depth
 
-          $tracer.trace(:aspace_data, json, nil) if $DEBUG
+          $tracer.trace(:aspace_data, json, nil) if $debug
 
           parse_queue.push_and_raise(json)
         end
@@ -232,13 +230,22 @@ ASpaceImport::Importer.importer :xml do
   
 
   def get_types_for_node(node)
-    regex = regexify(xpath(node))
-
-    if (types = ASpaceImport::Crosswalk.entries.map {|k,v| k if v["xpath"] and v["xpath"].find {|x| x.match(regex)}}.compact)
-      return types
+    
+    if ASpaceImport::Crosswalk.mappings && ASpaceImport::Crosswalk.mappings.has_key?(node.name)
+      return [ASpaceImport::Crosswalk.mappings[node.name]]
     else
-      return nil
+
+      regex = regexify(xpath(node))
+
+      # profile_data = JRuby::Profiler.profile do
+      return ASpaceImport::Crosswalk.entries.map {|k,v| k if v["xpath"] && v["xpath"].find {|x| x.match(regex)}}.compact
+      # end
+      # profile_printer = JRuby::Profiler::GraphProfilePrinter.new(profile_data)
+      # profile_printer.printProfile(STDOUT)
+        
+      # return $ntypes
     end
+    
   end
 
   
@@ -260,53 +267,53 @@ ASpaceImport::Importer.importer :xml do
     end
     
     # TODO: chop out the irrelevant attrs before making the key
-    key = "#{xp}#{atts.to_s}#{offset}"
+    # key = "#{xp}#{atts.to_s}#{offset}"
     
-    unless @regex_cache[key]
+    # @log.debug("KEY #{key}")
+    # @log.debug(@regex_cache.has_key?(key))
     
-      case offset
-      
-      when nil
-        @regex_cache[key] ||= Regexp.new "^(/|/" << xp.split("/")[1..-2].map { |n| 
-                                "(child::)?(#{n}|\\*)" 
-                                }.join('/') << ")" << xp.gsub(/.*\//, '/') \
-                                << (atts.last ? atts.last.map {|k,v| "(\\[#{k.to_s}='#{v}'\\])?"}.join : "") \
-                                << "$"
-      
-      when 0
-        @regex_cache[key] ||= /^[\/]?#{xp.gsub(/.*\//, '')}$/
+    # unless @regex_cache[key]
+    
+    case offset
+    
+    when nil
+      Regexp.new "^(/|/" << xp.split("/")[1..-2].map { |n| 
+        "(child::)?(#{n}|\\*)" 
+        }.join('/') << ")" << xp.gsub(/.*\//, '/') \
+        << (atts.last ? atts.last.map {|k,v| "(\\[#{k.to_s}='#{v}'\\])?"}.join : "") \
+        << "$"
+    
+    when 0
+      /^[\/]?#{xp.gsub(/.*\//, '')}$/
 
-      when 1..100
-      
-        ns = []
-        xp.scan(/[a-zA-Z_]+/)[offset*-1..-2].each_with_index do |n, i|
-      
-          j = offset + i
-          if atts[j] && !atts[j].empty?
-            atts[j].each {|k,v| n += "(\\[#{k.to_s}='#{v}'\\])?"}
-          end
-          
-          ns << "(child::)?(#{n}|\\*)"
+    when 1..100
+    
+      ns = []
+      xp.scan(/[a-zA-Z_]+/)[offset*-1..-2].each_with_index do |n, i|
+    
+        j = offset + i
+        if atts[j] && !atts[j].empty?
+          atts[j].each {|k,v| n += "(\\[#{k.to_s}='#{v}'\\])?"}
         end
-      
-      
-        @regex_cache[key] ||= Regexp.new "^(descendant::|" << ns.join('/') \
-                                                           << (offset > 1 ? "/" : "") \
-                                                           << "(child::)?)" \
-                                                           << xp.gsub(/.*\//, '') \
-                                                           << (atts.last ? atts.last.map {|k,v| "(\\[#{k.to_s}='#{v}'\\])?"}.join : "")\
-                                                           << "$"
-
-    
-      when -100..-1
-        @regex_cache[key] ||= Regexp.new "^(ancestor::|" << ((offset-1)*-1).times.map {
-                                  "parent::\\*/"
-                                  }.join << "parent::)#{xp.gsub(/.*\//, '')}"
+        
+        ns << "(child::)?(#{n}|\\*)"
       end
+    
+    
+      Regexp.new "^(descendant::|" << ns.join('/') \
+         << (offset > 1 ? "/" : "") \
+         << "(child::)?)" \
+         << xp.gsub(/.*\//, '') \
+         << (atts.last ? atts.last.map {|k,v| "(\\[#{k.to_s}='#{v}'\\])?"}.join : "")\
+         << "$"
+
+  
+    when -100..-1
+      Regexp.new "^(ancestor::|" << ((offset-1)*-1).times.map {
+        "parent::\\*/"
+        }.join << "parent::)#{xp.gsub(/.*\//, '')}"
     end
 
-    @regex_cache[key]
-    
   end
   
   private
@@ -406,23 +413,23 @@ ASpaceImport::Importer.importer :xml do
   end
 
   
-  def hack_input_file_for_nokogiri_exceptions(opts)
-    
-    # Workaround for Nokogiri bug:
-    # https://github.com/sparklemotion/nokogiri/pull/805
-    
-    new_file = File.new(opts[:input_file].gsub(/\.xml/, '_no_xlink.xml'), "w")
-    
-    File.open opts[:input_file], 'r' do |f|
-      f.each_line do |line|
-        new_file.puts line.gsub(/\sxlink:href=\".*?\"/, "")
-      end
-    end
-    
-    new_file.close
-    
-    opts[:input_file] = new_file.path
-  end
+  # def hack_input_file_for_nokogiri_exceptions(opts)
+  #   
+  #   # Workaround for Nokogiri bug:
+  #   # https://github.com/sparklemotion/nokogiri/pull/805
+  #   
+  #   new_file = File.new(opts[:input_file].gsub(/\.xml/, '_no_xlink.xml'), "w")
+  #   
+  #   File.open opts[:input_file], 'r' do |f|
+  #     f.each_line do |line|
+  #       new_file.puts line.gsub(/\sxlink:href=\".*?\"/, "")
+  #     end
+  #   end
+  #   
+  #   new_file.close
+  #   
+  #   opts[:input_file] = new_file.path
+  # end
 
 end
 

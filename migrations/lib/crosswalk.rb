@@ -9,6 +9,8 @@ module ASpaceImport
 
       @models = {}
       @link_conditions = []
+      @log = opts[:log]
+      
       
       @walk = Psych.load(IO.read(File.join(File.dirname(__FILE__),
                                                 "../crosswalks",
@@ -28,6 +30,10 @@ module ASpaceImport
         @models[key] = create_model(key, JSONModel::JSONModel(record_type))
       end                                                                               
     end 
+    
+    def self.log
+      @log
+    end
     
     def self.method_missing(meth)
       if @walk.has_key?(meth.to_s)
@@ -76,7 +82,7 @@ module ASpaceImport
         # Need to bypass some validation rules for 
         # JSON objects created by an import
         def self.validate(hash)
-          ASpaceImport.logger.debug "Validating #{hash.inspect}"
+          ASpaceImport::Crosswalk.log.debug "Validating #{hash.inspect}"
           begin
             super(hash)
           rescue JSONModel::ValidationException => e
@@ -169,7 +175,7 @@ module ASpaceImport
         if @receivers[prop_name]
           yield @receivers[prop_name]
         else
-          ASpaceImport.logger.warn("Unable to find a property called #{prop_name} for schema #{@json.jsonmodel_type}")
+          ASpaceImport::Crosswalk.log.warn("Unable to find a property called #{prop_name} for schema #{@json.jsonmodel_type}")
         end
       end
 

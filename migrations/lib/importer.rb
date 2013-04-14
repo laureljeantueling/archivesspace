@@ -2,13 +2,9 @@ module ASpaceImport
   
   def self.init
     Dir.glob(File.dirname(__FILE__) + '/../importers/*', &method(:load))
-    @@log = Logger.new
   end
   
-  def self.logger
-    @@log
-  end
-  
+
   class Importer
 
     @@importers = {}
@@ -72,19 +68,26 @@ module ASpaceImport
       
       raise "Need a repo_id in order to run" unless opts[:repo_id]
       
-      JSONModel::set_repository(opts[:repo_id])
+      unless opts[:log]
+        require 'logger'
+        opts[:log] = Logger.new
+      end
       
+      if opts[:debug] 
+        opts[:log].level = Logger::DEBUG
+      else
+        opts[:log].level = Logger::WARN 
+      end
+      
+      JSONModel::set_repository(opts[:repo_id])
+    
       opts.each do |k,v|
         instance_variable_set("@#{k}", v)
       end
+      
       @import_log = []
       @error_log = []
       @import_summary
-      if opts[:debug]
-        @logger = ASpaceImport.logger.set_mode :debug
-      else
-        @logger = ASpaceImport.logger.set_mode :warn
-      end
 
       @parse_queue = ASpaceImport::ParseQueue.new(opts)
     end
@@ -166,7 +169,7 @@ module ASpaceImport
     end
 
     def run
-      raise StandardError.new("Unexpected error: run method must be defined by a subclass")
+      @log.debug("Abstract importer class run method")
     end
     
     # ParseQueue helpers
@@ -174,7 +177,7 @@ module ASpaceImport
     # Empty out the parse queue and set any defaults
     def clear_parse_queue
       while !@parse_queue.empty?
-        ASpaceImport.logger.debug("SET DEFAULTS #{@parse_queue.last.to_s}")
+        @log.debug("SET DEFAULTS #{@parse_queue.last.to_s}")
         @parse_queue.last.receivers.each { |r| r.receive }
         @parse_queue.pop
       end
@@ -208,23 +211,6 @@ module ASpaceImport
     end
       
   end
-  
-  class Logger
-    
-    def set_mode(importer_mode)
-      @importer_mode = importer_mode
-    end
-    
-    def method_missing(meth, *args)
-      
-      if meth == @importer_mode || @importer_mode == :debug
-        puts "#{meth.to_s.upcase}: #{args.flatten.to_s}"
-      end
-    end
-  end  
-      
-      
-  
   
 end
 
