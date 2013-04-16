@@ -1,4 +1,4 @@
-Sequel.extension :inflector
+sequel.extension :inflector
 
 module MigrationUtils
   def self.shorten_table(name)
@@ -193,6 +193,10 @@ Sequel.migration do
       DateTime :last_modified, :null => false, :index => true
     end
 
+    alter_table(:repository) do
+      add_foreign_key([:country_id], :enumeration_value, :key => :id)
+    end
+
 
     alter_table(:repository) do
       add_foreign_key([:agent_representation_id], :agent_corporate_entity, :key => :id)
@@ -378,6 +382,8 @@ Sequel.migration do
     alter_table(:resource) do
       add_foreign_key([:repo_id], :repository, :key => :id)
       add_foreign_key([:accession_id], :accession, :key => :id)
+      add_foreign_key([:language_id], :enumeration_value, :key => :id)
+      add_foreign_key([:level_id], :enumeration_value, :key => :id)
       add_unique_constraint([:repo_id, :identifier], :name => "resource_unique_identifier")
       add_unique_constraint([:repo_id, :ead_id], :name => "resource_unique_ead_id")
     end
@@ -422,6 +428,8 @@ Sequel.migration do
       add_foreign_key([:repo_id], :repository, :key => :id)
       add_foreign_key([:root_record_id], :resource, :key => :id)
       add_foreign_key([:parent_id], :archival_object, :key => :id)
+      add_foreign_key([:level_id], :enumeration_value, :key => :id)
+      add_foreign_key([:language_id], :enumeration_value, :key => :id)
 
       add_unique_constraint([:root_record_id, :ref_id], :name => "ao_unique_refid")
       add_unique_constraint([:root_record_id, :parent_name, :position], :name => "ao_unique_position")
@@ -495,6 +503,7 @@ Sequel.migration do
       add_index([:repo_id, :component_id], :unique => true)
       add_foreign_key([:root_record_id], :digital_object, :key => :id)
       add_foreign_key([:parent_id], :digital_object_component, :key => :id)
+      add_foreign_key([:language_id], :enumeration_value, :key => :id)
 
       add_unique_constraint([:root_record_id, :parent_name, :position], :name => "do_unique_position")
     end
@@ -873,6 +882,7 @@ Sequel.migration do
     alter_table(:deaccession) do
       add_foreign_key([:accession_id], :accession, :key => :id)
       add_foreign_key([:resource_id], :resource, :key => :id)
+      add_foreign_key([:scope_id], :enumeration_value, :key => :id)
     end
 
 
@@ -1069,6 +1079,9 @@ Sequel.migration do
       add_foreign_key([:resource_id], :resource, :key => :id)
       add_foreign_key([:digital_object_id], :digital_object, :key => :id)
       add_foreign_key([:digital_object_component_id], :digital_object_component, :key => :id)
+      add_foreign_key([:rights_type_id], :enumeration_value, :key => :id)
+      add_foreign_key([:ip_status_id], :enumeration_value, :key => :id)
+      add_foreign_key([:jurisdiction_id], :enumeration_value, :key => :id)
 
       add_foreign_key([:repo_id], :repository, :key => :id)
       add_unique_constraint([:repo_id, :identifier], :name => "rights_unique_identifier")
@@ -1152,6 +1165,7 @@ Sequel.migration do
 
     alter_table(:location) do
       add_foreign_key([:repo_id], :repository, :key => :id)
+      add_foreign_key([:temporary_id], :enumeration_value, :key => :id)
     end
 
 
@@ -1560,6 +1574,7 @@ Sequel.migration do
       DateTime :last_modified, :null => false, :index => true
 
       String :status
+      #Integer :status_id
       String :start_date
       String :end_date
       String :note
@@ -1568,6 +1583,7 @@ Sequel.migration do
     alter_table(:housed_at_rlshp) do
       add_foreign_key([:container_id], :container, :key => :id)
       add_foreign_key([:location_id], :location, :key => :id)
+      #add_foreign_key([:status_id], :enumeration_value, :key => :id)
     end
 
 
