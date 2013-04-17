@@ -161,7 +161,7 @@ describe "ArchivesSpace Public interface" do
 
     it "offers pagination when there are more than 10" do
       11.times.each do |i|
-        create_resource("Test Resource #{i}", "id#{i}")
+        create_resource(:title => "Test Resource #{i}", :id_0 => "id#{i}")
       end
 
       @indexer.run_index_round
