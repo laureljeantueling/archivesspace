@@ -79,7 +79,6 @@ module RESTHelpers
       end
     end
 
-
     ALLOWED_REPORT_FORMATS = ["json", "csv", "xlsx", "html", "pdf"]
 
     def self.allowed_report_formats
