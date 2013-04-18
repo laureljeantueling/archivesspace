@@ -1120,6 +1120,7 @@ Sequel.migration do
       TextField :processing_plan, :null => true
       Integer :processing_priority_id, :null => true
       Integer :processing_status_id, :null => true
+      TextField :processing_funding_source, :null => true
       TextField :processors, :null => true
       Integer :rights_determined, :default => 0, :null => false
 
