@@ -926,6 +926,41 @@ describe "ArchivesSpace user interface" do
   end
 
 
+  describe "Pagination" do
+
+    before(:all) do
+      login_as_repo_manager
+      c = 0
+      (AppConfig[:default_page_size].to_i * 2 + 1).times do
+        create_accession("acc #{c += 1}")
+      end
+
+      @indexer.run_index_round
+    end
+
+
+    after(:all) do
+      logout
+      $accession_url = nil
+    end
+
+
+    it "navigate to subsequent pages" do
+      $driver.find_element(:link, "Browse").click
+      $driver.find_element(:link, "Accessions").click
+      expect {
+        $driver.find_element_with_text('//div', /Showing 1 - #{AppConfig[:default_page_size]}/)
+      }.to_not raise_error
+
+      $driver.find_element(:xpath, '//a[@title="Next"]').click
+      expect {
+        $driver.find_element_with_text('//div', /Showing #{AppConfig[:default_page_size] + 1}/)
+      }.to_not raise_error
+
+    end
+  end
+
+
   describe "Record Lifecycle" do
 
     before(:all) do
