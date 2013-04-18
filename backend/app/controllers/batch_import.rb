@@ -10,7 +10,22 @@ class ArchivesSpaceService < Sinatra::Base
              [400, :error],
              [409, :error]) \
   do
-    handle_import
+    records = params[:batch_import]
+    batch = Batch.new(records)
+    success = false
+
+    ticker = ProgressTicker.new(:frequency_seconds => 2) do |progress_ticker|
+      begin
+        DB.open do
+          handle_import(batch, progress_ticker)
+        end
+        success = true
+      ensure
+        progress_ticker.finished(:total_records => (success ? records['batch'].length : 0))
+      end
+    end
+
+    [200, {"Content-Type" => "text/plain"}, ticker]
   end
 
 end

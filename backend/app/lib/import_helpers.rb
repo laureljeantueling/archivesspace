@@ -2,14 +2,10 @@ require_relative "../../../migrations/lib/crosswalk"
 
 module ImportHelpers
   
-  def handle_import
-
-    batch = Batch.new(params[:batch_import])
-    
-    RequestContext.put(:repo_id, params[:repo_id])
+  def handle_import(batch, progress_ticker)
 
     begin
-      batch.process
+      batch.process(progress_ticker)
       json_response({:saved => batch.saved_uris}, 200)
     end
   end
@@ -32,7 +28,11 @@ module ImportHelpers
     # 3. Update JSONModel links using the real URIs
     # 4. Update ASModels with JSONModels with their references
 
-    def process
+    def process(progress_ticker)
+
+      # Since there's two rounds for many of our records, allow for two ticks
+      # per record
+      progress_ticker.tick_estimate = @json_set.length * 2
 
       @second_pass_keys = []
 
@@ -52,6 +52,8 @@ module ImportHelpers
           # Now update the URI with the real ID
           json.uri.sub!(/\/[0-9]+$/, "/#{@as_set[json.uri][0].to_s}")
 
+          progress_ticker.tick
+
           rescue Exception => e
             Log.debug("Import error #{e.inspect}")
             raise ImportException.new({:invalid_object => json, :error => e})
@@ -70,6 +72,8 @@ module ImportHelpers
         
           obj = Kernel.const_get(json.class.record_type.camelize).create_from_json(json)
           @as_set[json.uri] = [obj.id, obj.class]
+          progress_ticker.tick(2)
+
         
           # Now update the URI with the real ID
           json.uri.sub!(/\/[0-9]+$/, "/#{@as_set[json.uri][0].to_s}")
@@ -93,6 +97,7 @@ module ImportHelpers
           obj = a[1].get_or_die(a[0])
         
           obj.update_from_json(@json_set[ref], {:lock_version => obj.lock_version}, false) 
+          progress_ticker.tick
           @saved_uris[ref] = @json_set[ref].uri 
         rescue Exception => e
           raise ImportException.new({:invalid_object => @json_set[ref], :error => e})
