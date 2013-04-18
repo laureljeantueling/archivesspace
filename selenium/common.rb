@@ -466,7 +466,7 @@ end
 
 def create_accession(title)
   req = Net::HTTP::Post.new("#{$test_repo_uri}/accessions")
-  req.body = {:title => title, :id_0 => "#{Time.now.to_f}#{$$}", :accession_date => "2000-01-01"}.to_json
+  req.body = {:title => title, :id_0 => "#{Time.now.to_i}#{$$}", :accession_date => "2000-01-01"}.to_json
 
   response = admin_backend_request(req)
 
@@ -513,27 +513,6 @@ def create_archival_object(values = {})
   values_to_post = default_values.merge(values)
 
   req = Net::HTTP::Post.new("#{$test_repo_uri}/archival_objects")
-  req.body = values_to_post.to_json
-
-  response = admin_backend_request(req)
-
-  raise response.body if response.code != '200'
-
-  uri = JSON.parse(response.body)['uri']
-
-  [uri, values_to_post[:title]]
-end
-
-
-def create_resource(title = nil, id_0 = nil)
-  if !$test_repo
-    ($test_repo, $test_repo_uri) = create_test_repo("repo_#{Time.now.to_i}_#{$$}", "description")
-  end
-
-  default_values = {:title => "Test Resource #{Time.now.to_i}#{$$}", :id_0 => "#{Time.now.to_i}#{$$}", :level => "collection", :language => "eng", :extents => [{:portion => "whole", :number => "1", :extent_type => "files"}]}
-  values_to_post = default_values.merge(values)
-
-  req = Net::HTTP::Post.new("#{$test_repo_uri}/resources")
   req.body = values_to_post.to_json
 
   response = admin_backend_request(req)
