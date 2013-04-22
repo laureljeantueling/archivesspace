@@ -926,6 +926,71 @@ describe "ArchivesSpace user interface" do
   end
 
 
+  describe "Pagination" do
+
+    before(:all) do
+      login_as_repo_manager
+    end
+
+
+    after(:all) do
+      logout
+      $accession_url = nil
+    end
+
+
+    it "can navigate through pages of accessions" do
+      c = 0
+      (AppConfig[:default_page_size].to_i * 2 + 1).times do
+        create_accession("acc #{c += 1}")
+      end
+      @indexer.run_index_round
+
+      $driver.find_element(:link, "Browse").click
+      $driver.find_element(:link, "Accessions").click
+      expect {
+        $driver.find_element_with_text('//div', /Showing 1 - #{AppConfig[:default_page_size]}/)
+      }.to_not raise_error
+
+      $driver.find_element(:xpath, '//a[@title="Next"]').click
+      expect {
+        $driver.find_element_with_text('//div', /Showing #{AppConfig[:default_page_size] + 1}/)
+      }.to_not raise_error
+
+    end
+
+    it "can navigate through pages of digital objects " do
+      c = 0
+      (AppConfig[:default_page_size].to_i + 1).times do
+        $driver.find_element(:link, "Create").click
+        $driver.find_element(:link, "Digital Object").click
+
+        $driver.clear_and_send_keys([:id, "digital_object_title_"],("I can't believe this is DO number #{c += 1}"))
+        $driver.clear_and_send_keys([:id, "digital_object_digital_object_id_"],(Digest::MD5.hexdigest("#{Time.now}")))
+        
+        $driver.find_element(:css => "section#digital_object_file_versions_ > h3 > input.btn").click
+        
+        $driver.clear_and_send_keys([:id, "digital_object_file_versions__0__file_uri_"], "/uri/for/this/file/version")
+        
+        $driver.find_element(:css => "form#new_digital_object button[type='submit']").click
+      end
+      @indexer.run_index_round
+
+      $driver.find_element(:link, "Browse").click
+      $driver.find_element(:link, "Digital Objects").click
+      expect {
+        $driver.find_element_with_text('//div', /Showing 1 - #{AppConfig[:default_page_size]}/)
+      }.to_not raise_error
+
+      $driver.find_element(:xpath, '//a[@title="Next"]').click
+      expect {
+        $driver.find_element_with_text('//div', /Showing #{AppConfig[:default_page_size] + 1}/)
+      }.to_not raise_error
+
+    end
+  end
+
+
   describe "Record Lifecycle" do
 
     before(:all) do
