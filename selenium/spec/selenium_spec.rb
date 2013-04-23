@@ -944,7 +944,7 @@ describe "ArchivesSpace user interface" do
       (AppConfig[:default_page_size].to_i * 2 + 1).times do
         create_accession("acc #{c += 1}")
       end
-      @indexer.run_index_round
+      run_index_round
 
       $driver.find_element(:link, "Browse").click
       $driver.find_element(:link, "Accessions").click
@@ -974,7 +974,7 @@ describe "ArchivesSpace user interface" do
         
         $driver.find_element(:css => "form#new_digital_object button[type='submit']").click
       end
-      @indexer.run_index_round
+      run_index_round
 
       $driver.find_element(:link, "Browse").click
       $driver.find_element(:link, "Digital Objects").click
