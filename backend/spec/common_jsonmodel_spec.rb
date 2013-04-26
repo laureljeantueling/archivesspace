@@ -38,18 +38,32 @@ describe 'JSON model' do
     JSONModel.destroy_model(:testschema)
     JSONModel.destroy_model(:strictschema)
     JSONModel.destroy_model(:treeschema)
-
+    JSONModel.destroy_model(:urilessschema)
   end
 
 
   it "accepts a simple record" do
-
     JSONModel(:testschema).from_hash({
                                        "elt_0" => "helloworld",
                                        "elt_1" => "thisisatest"
                                      })
-
   end
+
+  
+  it "can give a list of models" do
+    JSONModel(:testschema).models.keys.should include("testschema")
+  end
+
+  
+  it "raises an error if you ask it for a schema source for a non-existent schema" do
+    JSONModel.schema_src("somenonexistenttestschema").should raise_error
+  end
+
+  
+  it "raises an error if you try to substitute a symbol into a uri" do
+    expect { JSONModel(:testschema).substitute_parameters("/uri/number/:number", :number => :wtf) }.to raise_error
+  end
+
   
   it "can recognize a valid url" do
     lambda {
@@ -138,11 +152,21 @@ describe 'JSON model' do
   end
 
 
-  it "can have its validation disabled" do
+  it "raises an error if you ask for an id from a uri for a schema that doesn't have a uri property" do
+    JSONModel.create_model_for("urilessschema",
+                               {
+                                 "type" => "object",
+                                 "$schema" => "http://www.archivesspace.org/archivesspace.json",
+                                 "properties" => {},
+                               })
 
+    expect { JSONModel(:urilessschema).id_for("/some/joke/of/a/uri") }.to raise_error
+  end
+
+
+  it "can have its validation disabled" do
     ts = JSONModel(:testschema).new._always_valid!
     ts._exceptions.should eq({})
-
   end
 
 
