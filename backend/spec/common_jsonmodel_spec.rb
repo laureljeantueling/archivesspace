@@ -20,6 +20,11 @@ describe 'JSON model' do
                                    "shorty" => {"type" => "string", "required" => false, "default" => "", "maxLength" => 2},
                                    "wants_integer" => {"type" => "integer", "required" => false},
                                    "wants_uri_or_object" => {"type" => "JSONModel(:testschema) uri_or_object"},
+                                   "wants_testschema_object" => {"type" => "JSONModel(:testschema) object"},
+                                   "wants_this_or_that_schema" => {"type" => [{"type" => "JSONModel(:testschema) object"},
+                                                                              {"type" => "JSONModel(:strictschema) object"},
+                                                                              {"type" => "JSONModel(:treeschema) object"}]},
+                                   "wants_red_green_or_blue" => {"type" => "string", "enum" => ["red", "green", "blue"]},
                                  },
 
                                  "additionalProperties" => false
@@ -226,6 +231,18 @@ describe 'JSON model' do
   end
 
 
+  it "enforces maximum length of property values" do
+
+    ts = JSONModel(:testschema).from_hash({
+                                            "elt_0" => "helloworld",
+                                            "elt_1" => "thisisatest"
+                                          })
+    ts[:shorty] = "waaaaaaaay too long dude"
+    ts._exceptions[:errors].keys.should eq (["shorty"])
+
+  end
+
+
   it "enforces the type of property values" do
 
     ts = JSONModel(:testschema).from_hash({
@@ -235,6 +252,40 @@ describe 'JSON model' do
     ts[:wants_integer] = "meep"
     ts._exceptions[:errors].keys.should eq (["wants_integer"])
 
+  end
+
+
+  it "enforces ArchivesSpace type property values" do
+
+    ts = JSONModel(:testschema).from_hash({
+                                            "elt_0" => "helloworld",
+                                            "elt_1" => "thisisatest"
+                                          })
+    ts[:wants_testschema_object] = "actually just a string"
+    ts._exceptions[:errors].keys.should eq (["wants_testschema_object"])
+
+  end
+
+
+  it "enforces multiple ArchivesSpace type property values" do
+
+    ts = JSONModel(:testschema).from_hash({
+                                            "elt_0" => "helloworld",
+                                            "elt_1" => "thisisatest"
+                                          })
+    ts[:wants_this_or_that_schema] = "actually just a string"
+    ts._exceptions[:errors].keys.should eq (["wants_this_or_that_schema"])
+  end
+
+
+  it "enforces old fashioned enums" do
+
+    ts = JSONModel(:testschema).from_hash({
+                                            "elt_0" => "helloworld",
+                                            "elt_1" => "thisisatest"
+                                          })
+    ts[:wants_red_green_or_blue] = "yellow"
+    ts._exceptions[:errors].keys.should eq (["wants_red_green_or_blue"])
   end
 
 
