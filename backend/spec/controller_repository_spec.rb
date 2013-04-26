@@ -21,6 +21,15 @@ describe 'Repository controller' do
   end
 
 
+  it "supports updating a repository" do
+    repo = create(:json_repo)
+    repo.email = "helpme@myrepository.org"
+    repo.save
+
+    JSONModel(:repository).find(repo.id).email.should eq("helpme@myrepository.org")
+  end
+
+
   it "can get back a single repository" do
     repo = create(:repo)
 
