@@ -8,6 +8,7 @@ class ArchivesSpaceService
       begin
         Repository.create(:repo_code => Group.GLOBAL,
                           :name => "Global repository",
+                          :json_schema_version => JSONModel(:repository).schema_version,
                           :hidden => 1)
       ensure
         Repository.restrict_primary_key
@@ -38,7 +39,8 @@ class ArchivesSpaceService
     if User[:username => User.ADMIN_USERNAME].nil?
       User.create_from_json(JSONModel(:user).from_hash(:username => User.ADMIN_USERNAME,
                                                        :name => "Administrator"),
-                            :source => "local")
+                            :source => "local",
+                            :is_system_user => 1)
       DBAuth.set_password(User.ADMIN_USERNAME, User.ADMIN_USERNAME)
     end
 
@@ -48,7 +50,8 @@ class ArchivesSpaceService
     RequestContext.open(:repo_id => global_repo.id) do
       if Group[:group_code => Group.ADMIN_GROUP_CODE].nil?
         created_group = Group.create_from_json(JSONModel(:group).from_hash(:group_code => Group.ADMIN_GROUP_CODE,
-                                                                           :description => "Administrators"))
+                                                                           :description => "Administrators"),
+                                               :is_system_user => 1)
         created_group.add_user(User[:username => User.ADMIN_USERNAME])
       end
     end

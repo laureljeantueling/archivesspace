@@ -17,10 +17,15 @@ module Sequel
 
       def TextField(field, opts = {})
         if $db_type == :derby
-          String field, opts.merge(:size => 32672)
+          Clob field, opts
         else
           Text field, opts
         end
+      end
+
+
+      def LongString(field, opts = {})
+        String field, opts.merge(:size => 17408)
       end
 
 
@@ -37,10 +42,16 @@ module Sequel
         if $db_type == :postgres
           Bytea field, opts
         elsif $db_type == :h2
-          String field, opts.merge(:size => 10240)
+          String field, opts.merge(:size => 128000)
         else
           Blob field, opts
         end
+      end
+
+
+      def DynamicEnum(field, opts = {})
+        Integer field, opts
+        foreign_key([field], :enumeration_value, :key => :id)
       end
 
     end

@@ -1,11 +1,12 @@
 {
   :schema => {
     "$schema" => "http://www.archivesspace.org/archivesspace.json",
+    "version" => 1,
     "type" => "object",
 
     "properties" => {
 
-      "title" => {"type" => "string", "ifmissing" => "error", "maxLength" => 32672},
+      "title" => {"type" => "string", "ifmissing" => "error", "maxLength" => 16384},
 
       "publish" => {"type" => "boolean", "default" => true},
       "internal" => {"type" => "boolean", "default" => false},
@@ -18,7 +19,7 @@
             "event_date" => {"type" => "date"},
             "events" => {
               "type" => "array",
-              "items" => {"type" => "string", "maxLength" => 32672}
+              "items" => {"type" => "string", "maxLength" => 65000}
             }
           }
         }

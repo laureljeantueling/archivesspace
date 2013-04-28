@@ -13,7 +13,7 @@ Sequel.migration do
     create_table(:session) do
       primary_key :id
       String :session_id, :unique => true, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
       Integer :expirable, :default => 1
 
       TextBlobField :session_data, :null => true
@@ -24,13 +24,16 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       String :name, :null => false, :unique => true
       
       Integer :default_value
 
+      Integer :editable, :default => 1
+
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
 
@@ -53,7 +56,7 @@ Sequel.migration do
       primary_key :id
       String :username, :unique => true, :null => false
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
       String :pwhash, :null => false
     end
 
@@ -66,16 +69,75 @@ Sequel.migration do
     end
 
 
+    create_table(:agent_person) do
+      primary_key :id
+
+      Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
+
+      Integer :notes_json_schema_version, :null => false
+      BlobField :notes, :null => true
+
+      DateTime :create_time, :null => false
+      DateTime :last_modified, :null => false, :index => true
+    end
+
+
+    create_table(:agent_family) do
+      primary_key :id
+
+      Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
+
+      Integer :notes_json_schema_version, :null => false
+      BlobField :notes, :null => true
+
+      DateTime :create_time, :null => false
+      DateTime :last_modified, :null => false, :index => true
+    end
+
+
+    create_table(:agent_corporate_entity) do
+      primary_key :id
+
+      Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
+
+      Integer :notes_json_schema_version, :null => false
+      BlobField :notes, :null => true
+
+      DateTime :create_time, :null => false
+      DateTime :last_modified, :null => false, :index => true
+    end
+
+
+    create_table(:agent_software) do
+      primary_key :id
+
+      Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
+
+      Integer :notes_json_schema_version, :null => false
+      BlobField :notes, :null => true
+
+      DateTime :create_time, :null => false
+      DateTime :last_modified, :null => false, :index => true
+    end
+
+
     create_table(:user) do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       String :username, :null => false, :unique => true
       String :name, :null => false
       String :source, :null => true
       Integer :agent_record_id, :null => false
       String :agent_record_type, :null => false
+
+      Integer :is_system_user, :default => 0, :null => false
 
       String :email
       String :first_name
@@ -86,14 +148,19 @@ Sequel.migration do
       TextField :additional_contact
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
+
+    alter_table(:user) do
+      add_foreign_key([:agent_record_id], :agent_person, :key => :id)
+    end
 
     create_table(:repository) do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       String :repo_code, :null => false, :unique => true
       String :name, :null => false
@@ -103,7 +170,7 @@ Sequel.migration do
       String :address_2
       String :city
       String :district
-      String :country
+      DynamicEnum :country_id
       String :post_code
       String :telephone
       String :telephone_ext
@@ -112,11 +179,12 @@ Sequel.migration do
       String :email_signature
       String :url
       String :image_url
+      TextField :contact_persons
 
       Integer :hidden, :default => 0
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
 
@@ -124,6 +192,7 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :repo_id, :null => false
 
@@ -132,7 +201,7 @@ Sequel.migration do
       TextField :description, :null => false
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
 
@@ -167,7 +236,7 @@ Sequel.migration do
       String :level, :default => "repository"
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
 
@@ -194,13 +263,14 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :repo_id, :null => false
       Integer :suppressed, :default => 0, :null => false
 
       String :identifier, :null => false
 
-      TextField :title, :null => true
+      LongString :title, :null => true
       
       Integer :publish
       
@@ -214,8 +284,8 @@ Sequel.migration do
       
       TextField :general_note
 
-      Integer :resource_type_id
-      Integer :acquisition_type_id
+      DynamicEnum :resource_type_id
+      DynamicEnum :acquisition_type_id
 
       DateTime :accession_date, :null => true
 
@@ -230,12 +300,10 @@ Sequel.migration do
       TextField :use_restrictions_note
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
     alter_table(:accession) do
-      add_foreign_key([:resource_type_id], :enumeration_value, :key => :id)
-      add_foreign_key([:acquisition_type_id], :enumeration_value, :key => :id)
       add_foreign_key([:repo_id], :repository, :key => :id)
       add_unique_constraint([:repo_id, :identifier], :name => "accession_unique_identifier")
       add_index(:suppressed)
@@ -245,19 +313,20 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :repo_id, :null => false
       Integer :accession_id, :null => true
-      TextField :title, :null => false
+      LongString :title, :null => false
 
       String :identifier
 
-      String :language, :null => false
+      DynamicEnum :language_id, :null => false
 
-      String :level, :null => false
+      DynamicEnum :level_id, :null => false
       String :other_level
 
-      Integer :resource_type_id, :null => true
+      DynamicEnum :resource_type_id, :null => true
 
       Integer :publish
       Integer :restrictions
@@ -272,26 +341,24 @@ Sequel.migration do
       TextField :finding_aid_filing_title
       String :finding_aid_date
       String :finding_aid_author
-      Integer :finding_aid_description_rules_id
+      DynamicEnum :finding_aid_description_rules_id
       String :finding_aid_language
       String :finding_aid_sponsor
       TextField :finding_aid_edition_statement
       TextField :finding_aid_series_statement
       String :finding_aid_revision_date
       TextField :finding_aid_revision_description
-      Integer :finding_aid_status_id
+      DynamicEnum :finding_aid_status_id
       TextField :finding_aid_note
 
+      Integer :notes_json_schema_version, :null => false
       BlobField :notes, :null => true
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
     alter_table(:resource) do
-      add_foreign_key([:resource_type_id], :enumeration_value, :key => :id)
-      add_foreign_key([:finding_aid_status_id], :enumeration_value, :key => :id)
-      add_foreign_key([:finding_aid_description_rules_id], :enumeration_value, :key => :id)
       add_foreign_key([:repo_id], :repository, :key => :id)
       add_foreign_key([:accession_id], :accession, :key => :id)
       add_unique_constraint([:repo_id, :identifier], :name => "resource_unique_identifier")
@@ -303,6 +370,7 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :repo_id, :null => false
 
@@ -312,22 +380,24 @@ Sequel.migration do
       Integer :position, :null => true
       
       Integer :internal_only
+      Integer :publish
 
       String :ref_id, :null => false, :unique => false
       String :component_id, :null => true
 
-      TextField :title, :null => true
+      LongString :title, :null => true
       Integer :title_auto_generate
 
-      String :level, :null => false
+      DynamicEnum :level_id, :null => false
       String :other_level
 
-      String :language, :null => true
+      DynamicEnum :language_id, :null => true
 
+      Integer :notes_json_schema_version, :null => false
       BlobField :notes, :null => true
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
     alter_table(:archival_object) do
@@ -347,26 +417,26 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :repo_id, :null => false
       String :digital_object_id, :null => false
-      TextField :title
-      Integer :level_id
-      Integer :digital_object_type_id
-      String :language
+      LongString :title
+      DynamicEnum :level_id
+      DynamicEnum :digital_object_type_id
+      DynamicEnum :language_id
 
       Integer :publish
       Integer :restrictions
 
+      Integer :notes_json_schema_version, :null => false
       BlobField :notes, :null => true
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
     alter_table(:digital_object) do
-      add_foreign_key([:level_id], :enumeration_value, :key => :id)
-      add_foreign_key([:digital_object_type_id], :enumeration_value, :key => :id)
       add_foreign_key([:repo_id], :repository, :key => :id)
       add_index([:repo_id, :digital_object_id], :unique => true)
     end
@@ -376,6 +446,7 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :repo_id, :null => false
       Integer :root_record_id, :null => true
@@ -383,15 +454,18 @@ Sequel.migration do
       Integer :position, :null => true
       String :parent_name, :null => true
 
-      String :component_id, :null => false
-      TextField :title
-      String :label
-      String :language
+      Integer :publish
 
+      String :component_id, :null => false
+      LongString :title
+      String :label
+      DynamicEnum :language_id
+
+      Integer :notes_json_schema_version, :null => false
       BlobField :notes, :null => true
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
     alter_table(:digital_object_component) do
@@ -409,42 +483,35 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :resource_id
       Integer :archival_object_id
       Integer :accession_id
 
-      Integer :instance_type_id, :null => false
+      DynamicEnum :instance_type_id, :null => false
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
     alter_table(:instance) do
       add_foreign_key([:resource_id], :resource, :key => :id)
       add_foreign_key([:archival_object_id], :archival_object, :key => :id)
       add_foreign_key([:accession_id], :accession, :key => :id)
-      add_foreign_key([:instance_type_id], :enumeration_value, :key => :id)
     end
 
-    # Instance relationships
-    [:digital_object].each do |record|
-      table = [MigrationUtils.shorten_table("instance"),
-               MigrationUtils.shorten_table(record)].sort.join("_link_").intern
+    create_table(:instance_do_link_rlshp) do
+      primary_key :id
+      Integer :digital_object_id
+      Integer :instance_id
+      Integer :aspace_relationship_position
+      DateTime :last_modified, :null => false, :index => true
+    end
 
-
-      create_table(table) do
-        primary_key :id
-        Integer "#{record}_id".intern
-        Integer :instance_id
-        Integer :aspace_relationship_position
-        DateTime :last_modified, :null => false
-      end
-
-      alter_table(table) do
-        add_foreign_key(["#{record}_id".intern], record, :key => :id)
-        add_foreign_key([:instance_id], :instance, :key => :id)
-      end
+    alter_table(:instance_do_link_rlshp) do
+      add_foreign_key([:digital_object_id], :digital_object, :key => :id)
+      add_foreign_key([:instance_id], :instance, :key => :id)
     end
 
 
@@ -452,27 +519,25 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :instance_id
 
-      Integer :type_1_id, :null => false
+      DynamicEnum :type_1_id, :null => false
       String :indicator_1, :null => false
       String :barcode_1
 
-      Integer :type_2_id
+      DynamicEnum :type_2_id
       String :indicator_2
 
-      Integer :type_3_id
+      DynamicEnum :type_3_id
       String :indicator_3
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
     alter_table(:container) do
-      add_foreign_key([:type_3_id], :enumeration_value, :key => :id)
-      add_foreign_key([:type_2_id], :enumeration_value, :key => :id)
-      add_foreign_key([:type_1_id], :enumeration_value, :key => :id)
       add_foreign_key([:instance_id], :instance, :key => :id)
     end
 
@@ -486,33 +551,33 @@ Sequel.migration do
       String :ref_id, :null => false, :unique => true
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
     self[:vocabulary].insert(:name => "global", :ref_id => "global",
-                               :create_time => Time.now, :last_modified => Time.now)
+                             :create_time => Time.now, :last_modified => Time.now)
 
 
     create_table(:subject) do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :vocab_id, :null => false
 
-      TextField :title
+      LongString :title
       String :terms_sha1, :unique => true
       String :ref_id, :unique => true
       TextField :scope_note
 
-      Integer :source_id, :null => true
+      DynamicEnum :source_id, :null => true
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
     alter_table(:subject) do
-      add_foreign_key([:source_id], :enumeration_value, :key => :id)
       add_foreign_key([:vocab_id], :vocabulary, :key => :id)
     end
 
@@ -521,19 +586,20 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :vocab_id, :null => false
 
       String :term, :null => false
-      String :term_type, :null => false
+      DynamicEnum :term_type_id, :null => false
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
     alter_table(:term) do
       add_foreign_key([:vocab_id], :vocabulary, :key => :id)
-      add_index([:vocab_id, :term, :term_type], :unique => true)
+      add_index([:vocab_id, :term, :term_type_id], :unique => true)
     end
 
 
@@ -547,56 +613,7 @@ Sequel.migration do
     alter_table(:subject_term) do
       add_foreign_key([:subject_id], :subject, :key => :id)
       add_foreign_key([:term_id], :term, :key => :id)
-
       add_index([:subject_id, :term_id], :name => "subject_term_idx")
-    end
-
-
-    create_table(:agent_person) do
-      primary_key :id
-
-      Integer :lock_version, :default => 0, :null => false
-
-      BlobField :notes, :null => true
-
-      DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
-    end
-
-
-    create_table(:agent_family) do
-      primary_key :id
-
-      Integer :lock_version, :default => 0, :null => false
-
-      BlobField :notes, :null => true
-
-      DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
-    end
-
-
-    create_table(:agent_corporate_entity) do
-      primary_key :id
-
-      Integer :lock_version, :default => 0, :null => false
-
-      BlobField :notes, :null => true
-
-      DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
-    end
-
-
-    create_table(:agent_software) do
-      primary_key :id
-
-      Integer :lock_version, :default => 0, :null => false
-
-      BlobField :notes, :null => true
-
-      DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
     end
 
 
@@ -605,8 +622,8 @@ Sequel.migration do
         String :authority_id, :null => true
         String :dates, :null => true
         TextField :qualifier, :null => true
-        Integer :source_id, :null => true
-        Integer :rules_id, :null => true
+        DynamicEnum :source_id, :null => true
+        DynamicEnum :rules_id, :null => true
         TextField :sort_name, :null => false
         Integer :sort_name_auto_generate
       end
@@ -614,13 +631,27 @@ Sequel.migration do
     end
 
 
-    def create_enum(name, values)
+    def create_editable_enum(name, values, default = nil)
+      create_enum(name, values, default, true)
+    end
+
+
+    def create_enum(name, values, default = nil, editable = false)
       id = self[:enumeration].insert(:name => name,
+                                     :json_schema_version => 1,
+                                     :editable => editable ? 1 : 0,
                                      :create_time => Time.now,
                                      :last_modified => Time.now)
 
+      id_of_default = nil
+
       values.each do |value|
-        self[:enumeration_value].insert(:enumeration_id => id, :value => value)
+        id_of_value = self[:enumeration_value].insert(:enumeration_id => id, :value => value)
+        id_of_default = id_of_value if value === default
+      end
+
+      if !id_of_default.nil?
+        self[:enumeration].where(:id => id).update(:default_value => id_of_default)
       end
     end
 
@@ -629,13 +660,14 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :agent_person_id, :null => false
 
       String :primary_name, :null => false
-      String :name_order, :null => false
+      DynamicEnum :name_order_id, :null => false
 
-      TextField :title, :null => true
+      LongString :title, :null => true
       TextField :prefix, :null => true
       TextField :rest_of_name, :null => true
       TextField :suffix, :null => true
@@ -645,14 +677,12 @@ Sequel.migration do
       apply_name_columns
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
 
     alter_table(:name_person) do
       add_foreign_key([:agent_person_id], :agent_person, :key => :id)
-      add_foreign_key([:rules_id], :enumeration_value, :key => :id)
-      add_foreign_key([:source_id], :enumeration_value, :key => :id)
     end
 
 
@@ -660,6 +690,7 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :agent_family_id, :null => false
 
@@ -670,14 +701,12 @@ Sequel.migration do
       apply_name_columns
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
 
     alter_table(:name_family) do
       add_foreign_key([:agent_family_id], :agent_family, :key => :id)
-      add_foreign_key([:rules_id], :enumeration_value, :key => :id)
-      add_foreign_key([:source_id], :enumeration_value, :key => :id)
     end
 
 
@@ -685,6 +714,7 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :agent_corporate_entity_id, :null => false
 
@@ -697,14 +727,12 @@ Sequel.migration do
       apply_name_columns
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
 
     alter_table(:name_corporate_entity) do
       add_foreign_key([:agent_corporate_entity_id], :agent_corporate_entity, :key => :id)
-      add_foreign_key([:rules_id], :enumeration_value, :key => :id)
-      add_foreign_key([:source_id], :enumeration_value, :key => :id)
     end
 
 
@@ -712,6 +740,7 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :agent_software_id, :null => false
 
@@ -723,14 +752,12 @@ Sequel.migration do
       apply_name_columns
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
 
     alter_table(:name_software) do
       add_foreign_key([:agent_software_id], :agent_software, :key => :id)
-      add_foreign_key([:rules_id], :enumeration_value, :key => :id)
-      add_foreign_key([:source_id], :enumeration_value, :key => :id)
     end
 
 
@@ -738,6 +765,7 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :agent_person_id, :null => true
       Integer :agent_family_id, :null => true
@@ -745,7 +773,7 @@ Sequel.migration do
       Integer :agent_software_id, :null => true
 
       TextField :name, :null => false
-      Integer :salutation_id, :null => true
+      DynamicEnum :salutation_id, :null => true
       TextField :address_1, :null => true
       TextField :address_2, :null => true
       TextField :address_3, :null => true
@@ -760,11 +788,10 @@ Sequel.migration do
       TextField :note, :null => true
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
     alter_table(:agent_contact) do
-      add_foreign_key([:salutation_id], :enumeration_value, :key => :id)
       add_foreign_key([:agent_person_id], :agent_person, :key => :id)
       add_foreign_key([:agent_family_id], :agent_family, :key => :id)
       add_foreign_key([:agent_corporate_entity_id], :agent_corporate_entity, :key => :id)
@@ -776,11 +803,12 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :accession_id, :null => true
       Integer :resource_id, :null => true
 
-      String :scope, :null => false
+      DynamicEnum :scope_id, :null => false
       String :description, :null => false
 
       String :reason
@@ -789,7 +817,7 @@ Sequel.migration do
       Integer :notification
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
 
@@ -803,6 +831,7 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :accession_id, :null => true
       Integer :deaccession_id, :null => true
@@ -812,16 +841,16 @@ Sequel.migration do
       Integer :digital_object_component_id, :null => true
 
 
-      String :portion, :null => false
+      Integer :portion_id, :null => false
       String :number, :null => false
-      Integer :extent_type_id, :null => false
+      DynamicEnum :extent_type_id, :null => false
 
       TextField :container_summary, :null => true
       TextField :physical_details, :null => true
       String :dimensions, :null => true
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
     alter_table(:extent) do
@@ -829,7 +858,41 @@ Sequel.migration do
       add_foreign_key([:archival_object_id], :archival_object, :key => :id)
       add_foreign_key([:resource_id], :resource, :key => :id)
       add_foreign_key([:deaccession_id], :deaccession, :key => :id)
-      add_foreign_key([:extent_type_id], :enumeration_value, :key => :id)
+      add_foreign_key([:digital_object_id], :digital_object, :key => :id)
+      add_foreign_key([:digital_object_component_id], :digital_object_component, :key => :id)
+    end
+
+
+    create_table(:related_agents_rlshp) do
+      primary_key :id
+
+      Integer :agent_person_id_0
+      Integer :agent_person_id_1
+      Integer :agent_corporate_entity_id_0
+      Integer :agent_corporate_entity_id_1
+      Integer :agent_software_id_0
+      Integer :agent_software_id_1
+      Integer :agent_family_id_0
+      Integer :agent_family_id_1
+
+      String :relator, :null => false
+      String :relationship_target, :null => false
+      String :jsonmodel_type, :null => false
+      TextField :description, :null => true
+
+      Integer :aspace_relationship_position
+      DateTime :last_modified, :null => false, :index => true
+    end
+
+    alter_table(:related_agents_rlshp) do
+      add_foreign_key([:agent_person_id_0], :agent_person, :key => :id)
+      add_foreign_key([:agent_person_id_1], :agent_person, :key => :id)
+      add_foreign_key([:agent_corporate_entity_id_0], :agent_corporate_entity, :key => :id)
+      add_foreign_key([:agent_corporate_entity_id_1], :agent_corporate_entity, :key => :id)
+      add_foreign_key([:agent_software_id_0], :agent_software, :key => :id)
+      add_foreign_key([:agent_software_id_1], :agent_software, :key => :id)
+      add_foreign_key([:agent_family_id_0], :agent_family, :key => :id)
+      add_foreign_key([:agent_family_id_1], :agent_family, :key => :id)
     end
 
 
@@ -837,6 +900,7 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :accession_id, :null => true
       Integer :deaccession_id, :null => true
@@ -845,21 +909,20 @@ Sequel.migration do
       Integer :event_id, :null => true
       Integer :digital_object_id, :null => true
       Integer :digital_object_component_id, :null => true
+      Integer :related_agents_rlshp_id, :null => true
 
-      String :date_type, :null => true
-      String :label, :null => false
+      DynamicEnum :date_type_id, :null => true
+      DynamicEnum :label_id, :null => false
 
-      String :certainty, :null => true
+      DynamicEnum :certainty_id, :null => true
       String :expression, :null => true
       String :begin, :null => true
-      String :begin_time, :null => true
       String :end, :null => true
-      String :end_time, :null => true
-      Integer :era_id, :null => true
-      Integer :calendar_id, :null => true
+      DynamicEnum :era_id, :null => true
+      DynamicEnum :calendar_id, :null => true
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
 
@@ -867,34 +930,37 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
       Integer :suppressed, :default => 0, :null => false
 
       Integer :repo_id, :null => false
 
-      Integer :event_type_id, :null => false
-      Integer :outcome_id, :null => true
+      DynamicEnum :event_type_id, :null => false
+      DynamicEnum :outcome_id, :null => true
       String :outcome_note, :null => true
 
+      DateTime :timestamp, :null => true
+
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
     alter_table(:event) do
       add_index(:suppressed)
       add_foreign_key([:repo_id], :repository, :key => :id)
-      add_foreign_key([:event_type_id], :enumeration_value, :key => :id)
-      add_foreign_key([:outcome_id], :enumeration_value, :key => :id)
     end
 
 
     alter_table(:date) do
-      add_foreign_key([:era_id], :enumeration_value, :key => :id)
-      add_foreign_key([:calendar_id], :enumeration_value, :key => :id)
       add_foreign_key([:accession_id], :accession, :key => :id)
       add_foreign_key([:archival_object_id], :archival_object, :key => :id)
       add_foreign_key([:resource_id], :resource, :key => :id)
       add_foreign_key([:event_id], :event, :key => :id)
       add_foreign_key([:deaccession_id], :deaccession, :key => :id)
+      add_foreign_key([:related_agents_rlshp_id], :related_agents_rlshp, :key => :id)
+      add_foreign_key([:digital_object_id], :digital_object, :key => :id)
+      add_foreign_key([:digital_object_component_id], :digital_object_component, :key => :id)
+
     end
 
 
@@ -902,6 +968,7 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :accession_id, :null => true
       Integer :archival_object_id, :null => true
@@ -912,19 +979,19 @@ Sequel.migration do
       Integer :repo_id, :null => false
 
       String :identifier, :null => false
-      String :rights_type, :null => false
+      DynamicEnum :rights_type_id, :null => false
 
       Integer :active
 
       String :materials, :null => true
 
-      String :ip_status, :null => true
+      DynamicEnum :ip_status_id, :null => true
       DateTime :ip_expiration_date, :null => true
 
       String :license_identifier_terms, :null => true
       String :statute_citation, :null => true
 
-      String :jurisdiction, :null => true
+      DynamicEnum :jurisdiction_id, :null => true
       String :type_note, :null => true
 
       TextField :permissions, :null => true
@@ -935,7 +1002,7 @@ Sequel.migration do
       String :granted_note, :null => true
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
 
@@ -955,14 +1022,15 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
-      TextField :title, :null => false
+      LongString :title, :null => false
       String :location, :null => false
 
       Integer :publish
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
 
@@ -996,12 +1064,13 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :repo_id, :null => false
 
       String :building, :null => false
 
-      TextField :title
+      LongString :title
 
       String :floor
       String :room
@@ -1014,10 +1083,10 @@ Sequel.migration do
       String :coordinate_2_indicator
       String :coordinate_3_label
       String :coordinate_3_indicator
-      String :temporary
+      DynamicEnum :temporary_id
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
     alter_table(:location) do
@@ -1029,6 +1098,7 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :repo_id, :null => false
 
@@ -1039,23 +1109,25 @@ Sequel.migration do
       TextField :cataloged_note, :null => true
       String :processing_hours_per_foot_estimate, :null => true
       String :processing_total_extent, :null => true
-      Integer :processing_total_extent_type_id, :null => true
+      DynamicEnum :processing_total_extent_type_id, :null => true
       String :processing_hours_total, :null => true
       TextField :processing_plan, :null => true
-      Integer :processing_priority_id, :null => true
-      Integer :processing_status_id, :null => true
+      DynamicEnum :processing_priority_id, :null => true
+      DynamicEnum :processing_status_id, :null => true
+      TextField :processing_funding_source, :null => true
       TextField :processors, :null => true
       Integer :rights_determined, :default => 0, :null => false
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
     alter_table(:collection_management) do
       add_foreign_key([:repo_id], :repository, :key => :id)
-      add_foreign_key([:processing_total_extent_type_id], :enumeration_value, :key => :id)
-      add_foreign_key([:processing_status_id], :enumeration_value, :key => :id)
-      add_foreign_key([:processing_priority_id], :enumeration_value, :key => :id)
+
+      add_foreign_key([:accession_id], :accession, :key => :id)
+      add_foreign_key([:resource_id], :resource, :key => :id)
+      add_foreign_key([:digital_object_id], :digital_object, :key => :id)
     end
 
 
@@ -1063,6 +1135,7 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :repo_id, :null => false
 
@@ -1101,33 +1174,31 @@ Sequel.migration do
       primary_key :id
 
       Integer :lock_version, :default => 0, :null => false
+      Integer :json_schema_version, :null => false
 
       Integer :digital_object_id, :null => true
       Integer :digital_object_component_id, :null => true
 
-      Integer :use_statement_id, :null => true
-      Integer :checksum_method_id, :null => true
+      DynamicEnum :use_statement_id, :null => true
+      DynamicEnum :checksum_method_id, :null => true
 
       String :file_uri, :null => false
       Integer :publish
-      String :xlink_actuate_attribute
-      String :xlink_show_attribute
-      String :file_format_name
+      DynamicEnum :xlink_actuate_attribute_id
+      DynamicEnum :xlink_show_attribute_id
+      DynamicEnum :file_format_name_id
       String :file_format_version
       Integer :file_size_bytes
       String :checksum
       String :checksum_method
 
       DateTime :create_time, :null => false
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
     alter_table(:file_version) do
-      add_foreign_key([:use_statement_id], :enumeration_value, :key => :id)
       add_foreign_key([:digital_object_id], :digital_object, :key => :id)
       add_foreign_key([:digital_object_component_id], :digital_object_component, :key => :id)
-      add_foreign_key([:use_statement_id], :enumeration_value, :key => :id)
-      add_foreign_key([:checksum_method_id], :enumeration_value, :key => :id)
     end
 
 
@@ -1147,7 +1218,7 @@ Sequel.migration do
     end
 
 
-    create_enum('linked_agent_archival_record_relators',
+    create_editable_enum('linked_agent_archival_record_relators',
                 ['act', 'adp', 'anl', 'anm', 'ann', 'app', 'arc', 'arr', 'acp',
                  'art', 'ard', 'asg', 'asn', 'att', 'auc', 'aut', 'aqt', 'aft',
                  'aud', 'aui', 'aus', 'ant', 'bnd', 'bdd', 'blw', 'bkd', 'bkp',
@@ -1176,56 +1247,56 @@ Sequel.migration do
                  'wam'])
 
 
-    create_enum('linked_event_archival_record_roles',
+    create_editable_enum('linked_event_archival_record_roles',
                 ['source', 'outcome', 'transfer'])
 
 
-    create_enum('linked_agent_event_roles',
+    create_editable_enum('linked_agent_event_roles',
                 ["authorizer", "executing_program", "implementer", "recipient",
                  "transmitter", "validator"])
 
-    create_enum('name_source', ["local", "naf", "nad", "ulan"])
+    create_editable_enum('name_source', ["local", "naf", "nad", "ulan"])
 
-    create_enum('name_rule', ["local", "aacr", "dacs"])
+    create_editable_enum('name_rule', ["local", "aacr", "dacs"])
 
-    create_enum('accession_acquisition_type', ["deposit", "gift", "purchase", "transfer"])
-    
-    create_enum('accession_resource_type', ["collection", "publications", "papers", "records"])
+    create_editable_enum('accession_acquisition_type', ["deposit", "gift", "purchase", "transfer"])
 
-    create_enum('collection_management_processing_priority', ["high", "medium", "low"])
+    create_editable_enum('accession_resource_type', ["collection", "publications", "papers", "records"])
 
-    create_enum('collection_management_processing_status', ["new", "in_progress", "completed"])
+    create_editable_enum('collection_management_processing_priority', ["high", "medium", "low"])
 
-    create_enum('date_era', ["ce"])
+    create_editable_enum('collection_management_processing_status', ["new", "in_progress", "completed"])
 
-    create_enum('date_calendar', ["gregorian"])
+    create_editable_enum('date_era', ["ce"])
 
-    create_enum('digital_object_digital_object_type', ["cartographic", "mixed_materials", "moving_image", "notated_music", "software_multimedia", "sound_recording", "sound_recording_musical", "sound_recording_nonmusical", "still_image", "text"])
+    create_editable_enum('date_calendar', ["gregorian"])
 
-    create_enum('digital_object_level', ["collection", "work", "image"])
+    create_editable_enum('digital_object_digital_object_type', ["cartographic", "mixed_materials", "moving_image", "notated_music", "software_multimedia", "sound_recording", "sound_recording_musical", "sound_recording_nonmusical", "still_image", "text"])
 
-    create_enum('extent_extent_type', ["cassettes", "cubic_feet", "files", "gigabytes", "leaves", "linear_feet", "megabytes", "photographic_prints", "photographic_slides", "reels", "sheets", "terabytes", "volumes"])
+    create_editable_enum('digital_object_level', ["collection", "work", "image"])
 
-    create_enum('event_event_type', ["accession", "accumulation", "acknowledgement", "acknowledgement_sent", "agreement_signed", "agreement_received", "agreement_sent", "appraisal", "assessment", "capture", "cataloging", "collection", "compression", "contribution", "copyright_transfer", "custody_transfer", "deaccession", "decompression", "decryption", "deletion", "digital_signature_validation", "fixity_check", "ingestion", "message_digest_calculation", "migration", "normalization", "processing", "publication", "replication", "resource_merge", "resource_component_transfer", "validation", "virus_check"])
+    create_editable_enum('extent_extent_type', ["cassettes", "cubic_feet", "files", "gigabytes", "leaves", "linear_feet", "megabytes", "photographic_prints", "photographic_slides", "reels", "sheets", "terabytes", "volumes"])
 
-    create_enum('container_type', ["box", "carton", "case", "folder", "frame", "object", "page", "reel", "volume"])
+    create_editable_enum('event_event_type', ["accession", "accumulation", "acknowledgement", "acknowledgement_sent", "agreement_signed", "agreement_received", "agreement_sent", "appraisal", "assessment", "capture", "cataloging", "collection", "compression", "contribution", "component_transfer", "copyright_transfer", "custody_transfer", "deaccession", "decompression", "decryption", "deletion", "digital_signature_validation", "fixity_check", "ingestion", "message_digest_calculation", "migration", "normalization", "processing", "publication", "replication", "validation", "virus_check"])
 
-    create_enum('agent_contact_salutation', ["mr", "mrs", "ms", "madame", "sir"])
+    create_editable_enum('container_type', ["box", "carton", "case", "folder", "frame", "object", "page", "reel", "volume"])
 
-    create_enum('event_outcome', ["pass", "partial pass", "fail"])
+    create_editable_enum('agent_contact_salutation', ["mr", "mrs", "ms", "madame", "sir"])
 
-    create_enum('resource_resource_type', ["collection", "publications", "papers", "records"])
+    create_editable_enum('event_outcome', ["pass", "partial pass", "fail"])
 
-    create_enum('resource_finding_aid_description_rules', ["aacr", "cco", "dacs", "rad", "isadg"])
+    create_editable_enum('resource_resource_type', ["collection", "publications", "papers", "records"])
 
-    create_enum('resource_finding_aid_status', ["completed", "in_progress", "under_revision", "unprocessed"])
+    create_editable_enum('resource_finding_aid_description_rules', ["aacr", "cco", "dacs", "rad", "isadg"])
 
-    create_enum('instance_instance_type', ["accession", "audio", "books", "computer_disks", "digital_object","graphic_materials", "maps", "microform", "mixed_materials", "moving_images", "realia", "text"])
+    create_editable_enum('resource_finding_aid_status', ["completed", "in_progress", "under_revision", "unprocessed"])
 
-    create_enum('subject_source', ["aat", "rbgenr", "tgn", "lcsh", "local", "mesh", "gmgpc"])
+    create_editable_enum('instance_instance_type', ["accession", "audio", "books", "computer_disks", "digital_object","graphic_materials", "maps", "microform", "mixed_materials", "moving_images", "realia", "text"])
+
+    create_editable_enum('subject_source', ["aat", "rbgenr", "tgn", "lcsh", "local", "mesh", "gmgpc"])
 
 
-    create_enum('file_version_use_statement',
+    create_editable_enum('file_version_use_statement',
                 ["audio-clip",
                  "audio-master",
                  "audio-master-edited",
@@ -1250,151 +1321,161 @@ Sequel.migration do
                  "video-service",
                  "video-streaming"])
 
-    create_enum('file_version_checksum_methods',
+    create_editable_enum('file_version_checksum_methods',
                 ["md5", "sha-1", "sha-256", "sha-384", "sha-512"])
 
+    create_enum("language_iso639_2", ["aar","abk","ace","ach","ada","ady","afa","afh","afr","ain","aka","akk","alb","ale","alg","alt","amh","ang","anp","apa","ara","arc","arg","arm","arn","arp","art","arw","asm","ast","ath","aus","ava","ave","awa","aym","aze","bad","bai","bak","bal","bam","ban","baq","bas","bat","bej","bel","bem","ben","ber","bho","bih","bik","bin","bis","bla","bnt","bos","bra","bre","btk","bua","bug","bul","bur","byn","cad","cai","car","cat","cau","ceb","cel","cha","chb","che","chg","chi","chk","chm","chn","cho","chp","chr","chu","chv","chy","cmc","cop","cor","cos","cpe","cpf","cpp","cre","crh","crp","csb","cus","cze","dak","dan","dar","day","del","den","dgr","din","div","doi","dra","dsb","dua","dum","dut","dyu","dzo","efi","egy","eka","elx","eng","enm","epo","est","ewe","ewo","fan","fao","fat","fij","fil","fin","fiu","fon","fre","frm","fro","frr","frs","fry","ful","fur","gaa","gay","gba","gem","geo","ger","gez","gil","gla","gle","glg","glv","gmh","goh","gon","gor","got","grb","grc","gre","grn","gsw","guj","gwi","hai","hat","hau","haw","heb","her","hil","him","hin","hit","hmn","hmo","hrv","hsb","hun","hup","iba","ibo","ice","ido","iii","ijo","iku","ile","ilo","ina","inc","ind","ine","inh","ipk","ira","iro","ita","jav","jbo","jpn","jpr","jrb","kaa","kab","kac","kal","kam","kan","kar","kas","kau","kaw","kaz","kbd","kha","khi","khm","kho","kik","kin","kir","kmb","kok","kom","kon","kor","kos","kpe","krc","krl","kro","kru","kua","kum","kur","kut","lad","lah","lam","lao","lat","lav","lez","lim","lin","lit","lol","loz","ltz","lua","lub","lug","lui","lun","luo","lus","mac","mad","mag","mah","mai","mak","mal","man","mao","map","mar","mas","may","mdf","mdr","men","mga","mic","min","mis","mkh","mlg","mlt","mnc","mni","mno","moh","mon","mos","mul","mun","mus","mwl","mwr","myn","myv","nah","nai","nap","nau","nav","nbl","nde","ndo","nds","nep","new","nia","nic","niu","nno","nob","nog","non","nor","nqo","nso","nub","nwc","nya","nym","nyn","nyo","nzi","oci","oji","ori","orm","osa","oss","ota","oto","paa","pag","pal","pam","pan","pap","pau","peo","per","phi","phn","pli","pol","pon","por","pra","pro","pus","qaa-qtz","que","raj","rap","rar","roa","roh","rom","rum","run","rup","rus","sad","sag","sah","sai","sal","sam","san","sas","sat","scn","sco","sel","sem","sga","sgn","shn","sid","sin","sio","sit","sla","slo","slv","sma","sme","smi","smj","smn","smo","sms","sna","snd","snk","sog","som","son","sot","spa","srd","srn","srp","srr","ssa","ssw","suk","sun","sus","sux","swa","swe","syc","syr","tah","tai","tam","tat","tel","tem","ter","tet","tgk","tgl","tha","tib","tig","tir","tiv","tkl","tlh","tli","tmh","tog","ton","tpi","tsi","tsn","tso","tuk","tum","tup","tur","tut","tvl","twi","tyv","udm","uga","uig","ukr","umb","und","urd","uzb","vai","ven","vie","vol","vot","wak","wal","war","was","wel","wen","wln","wol","xal","xho","yao","yap","yid","yor","ypk","zap","zbl","zen","zha","znd","zul","zun","zxx","zza",])
 
-    [:agent_person, :agent_software, :agent_family, :agent_corporate_entity].each do |agent|
-      # Relationship tables - static role types
-      [:accession, :archival_object, :digital_object, :digital_object_component, :resource].each do |record|
+    create_enum("linked_agent_role", ["creator", "source", "subject"])
 
-        table = [MigrationUtils.shorten_table(record),
-                 MigrationUtils.shorten_table(agent)].sort.join("_linked_agents_").intern
+    create_enum("agent_relationship_associative_relator", ["is_associative_with"])
+    create_enum("agent_relationship_earlierlater_relator", ["is_earlier_form_of", "is_later_form_of"])
+    create_enum("agent_relationship_parentchild_relator", ["is_parent_of", "is_child_of"])
+    create_enum("agent_relationship_subordinatesuperior_relator", ["is_subordinate_to", "is_superior_of"])
 
-        create_table(table) do
-          primary_key :id
-          Integer "#{record}_id".intern
-          Integer "#{agent}_id".intern
-          Integer :aspace_relationship_position
-          DateTime :last_modified, :null => false
-          String :role
-          Integer :relator_id
-        end
+    create_enum("archival_record_level", ["class", "collection", "file", "fonds", "item", "otherlevel", "recordgrp", "series", "subfonds", "subgrp", "subseries"])
 
-        alter_table(table) do
-          add_foreign_key(["#{record}_id".intern], record, :key => :id)
-          add_foreign_key(["#{agent}_id".intern], agent, :key => :id)
-          add_foreign_key([:relator_id], :enumeration_value, :key => :id)
-        end
-      end
-      # Relationship tables - dynamic role types
-      [:event].each do |record|
+    create_enum("container_location_status", ["current", "previous"], "current")
 
-        table = [MigrationUtils.shorten_table(record),
-                 MigrationUtils.shorten_table(agent)].sort.join("_linked_agents_").intern
+    create_enum("date_type", ["single", "bulk", "inclusive"])
+    create_enum("date_label", ["broadcast", "copyright", "creation", "deaccession", "digitized", "event", "issued", "modified", "publication", "agent_relation", "other"])
+    create_enum("date_certainty", ["approximate", "inferred", "questionable"])
 
-        create_table(table) do
-          primary_key :id
-          Integer "#{record}_id".intern
-          Integer "#{agent}_id".intern
-          Integer :aspace_relationship_position
-          DateTime :last_modified, :null => false
-          Integer :role_id
-          Integer :relator_id
-        end
+    create_enum("deaccession_scope", ["whole", "part"], "whole")
 
-        alter_table(table) do
-          add_foreign_key(["#{record}_id".intern], record, :key => :id)
-          add_foreign_key(["#{agent}_id".intern], agent, :key => :id)
-          add_foreign_key([:role_id], :enumeration_value, :key => :id)
-          add_foreign_key([:relator_id], :enumeration_value, :key => :id)
-        end
-      end
+    create_enum("extent_portion", ["whole", "part"], "whole")
+
+    create_enum("file_version_xlink_actuate_attribute", ["none", "other", "onLoad", "onRequest"])
+    create_enum("file_version_xlink_show_attribute", ["new", "replace", "embed", "other", "none"])
+    create_editable_enum("file_version_file_format_name", ["aiff", "avi", "gif", "jpeg", "mp3", "pdf", "tiff", "txt"])
+
+    create_enum("location_temporary", ["conservation", "exhibit", "loan", "reading_room"])
+
+    create_enum("name_person_name_order", ["inverted", "direct"], "inverted")
+
+    create_enum("note_digital_object_type", ["summary", "bioghist", "accessrestrict", "userestrict", "custodhist", "dimensions", "edition", "extent", "altformavail", "originalsloc", "note", "acqinfo", "inscription", "langmaterial", "legalstatus", "physdesc", "prefercite", "processinfo", "relatedmaterial"])
+    create_enum("note_multipart_type", ["accruals", "appraisal", "arrangement", "bioghist", "accessrestrict", "userestrict", "custodhist", "dimensions", "altformavail", "originalsloc", "fileplan", "odd", "acqinfo", "legalstatus", "otherfindaid", "phystech", "prefercite", "processinfo", "relatedmaterial", "scopecontent", "separatedmaterial"])
+    create_enum("note_orderedlist_enumeration", ["arabic", "loweralpha", "upperalpha", "lowerroman", "upperroman", "null"])
+    create_enum("note_singlepart_type", ["abstract", "physdesc", "langmaterial", "physloc", "materialspec", "physfacet"])
+
+    create_enum("country_iso_3166", ["AF", "AX", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR", "AM", "AW", "AU", "AT", "AZ", "BS", "BH", "BD", "BB", "BY", "BE", "BZ", "BJ", "BM", "BT", "BO", "BQ", "BA", "BW", "BV", "BR", "IO", "BN", "BG", "BF", "BI", "KH", "CM", "CA", "CV", "KY", "CF", "TD", "CL", "CN", "CX", "CC", "CO", "KM", "CG", "CD", "CK", "CR", "CI", "HR", "CU", "CW", "CY", "CZ", "DK", "DJ", "DM", "DO", "EC", "EG", "SV", "GQ", "ER", "EE", "ET", "FK", "FO", "FJ", "FI", "FR", "GF", "PF", "TF", "GA", "GM", "GE", "DE", "GH", "GI", "GR", "GL", "GD", "GP", "GU", "GT", "GG", "GN", "GW", "GY", "HT", "HM", "VA", "HN", "HK", "HU", "IS", "IN", "ID", "IR", "IQ", "IE", "IM", "IL", "IT", "JM", "JP", "JE", "JO", "KZ", "KE", "KI", "KP", "KR", "KW", "KG", "LA", "LV", "LB", "LS", "LR", "LY", "LI", "LT", "LU", "MO", "MK", "MG", "MW", "MY", "MV", "ML", "MT", "MH", "MQ", "MR", "MU", "YT", "MX", "FM", "MD", "MC", "MN", "ME", "MS", "MA", "MZ", "MM", "NA", "NR", "NP", "NL", "NC", "NZ", "NI", "NE", "NG", "NU", "NF", "MP", "NO", "OM", "PK", "PW", "PS", "PA", "PG", "PY", "PE", "PH", "PN", "PL", "PT", "PR", "QA", "RE", "RO", "RU", "RW", "BL", "SH", "KN", "LC", "MF", "PM", "VC", "WS", "SM", "ST", "SA", "SN", "RS", "SC", "SL", "SG", "SX", "SK", "SI", "SB", "SO", "ZA", "GS", "SS", "ES", "LK", "SD", "SR", "SJ", "SZ", "SE", "CH", "SY", "TW", "TJ", "TZ", "TH", "TL", "TG", "TK", "TO", "TT", "TN", "TR", "TM", "TC", "TV", "UG", "UA", "AE", "GB", "US", "UM", "UY", "UZ", "VU", "VE", "VN", "VG", "VI", "WF", "EH", "YE", "ZM", "ZW"])
+
+    create_enum("rights_statement_rights_type", ["intellectual_property", "license", "statute", "institutional_policy"])
+    create_enum("rights_statement_ip_status", ["copyrighted", "public_domain", "unknown"])
+
+    create_enum("subject_term_type", ["cultural_context", "function", "geographic", "genre_form", "occupation", "style_period", "technique", "temporal", "topical", "uniform_title"])
+
+    create_table(:linked_agents_rlshp) do
+      primary_key :id
+
+      Integer :agent_person_id
+      Integer :agent_software_id
+      Integer :agent_family_id
+      Integer :agent_corporate_entity_id
+
+      Integer :accession_id
+      Integer :archival_object_id
+      Integer :digital_object_id
+      Integer :digital_object_component_id
+      Integer :event_id
+      Integer :resource_id
+
+      Integer :aspace_relationship_position
+      DateTime :last_modified, :null => false, :index => true
+
+      String :role
+      DynamicEnum :role_id
+      DynamicEnum :relator_id
     end
 
-    
+    alter_table(:linked_agents_rlshp) do
+      add_foreign_key([:agent_person_id], :agent_person, :key => :id)
+      add_foreign_key([:agent_software_id], :agent_software, :key => :id)
+      add_foreign_key([:agent_family_id], :agent_family, :key => :id)
+      add_foreign_key([:agent_corporate_entity_id], :agent_corporate_entity, :key => :id)
+      add_foreign_key([:accession_id], :accession, :key => :id)
+      add_foreign_key([:archival_object_id], :archival_object, :key => :id)
+      add_foreign_key([:digital_object_id], :digital_object, :key => :id)
+      add_foreign_key([:digital_object_component_id], :digital_object_component, :key => :id)
+      add_foreign_key([:event_id], :event, :key => :id)
+      add_foreign_key([:resource_id], :resource, :key => :id)
+    end
+
 
     # Event relationships
-    [:accession, :resource, :archival_object, :digital_object, :agent_person, :agent_family, :agent_corporate_entity, :agent_software].each do |record|
-      table = [MigrationUtils.shorten_table("event"),
-               MigrationUtils.shorten_table(record)].sort.join("_link_").intern
+    create_table(:event_link_rlshp) do
+      primary_key :id
 
-      create_table(table) do
-        primary_key :id
-        Integer "#{record}_id".intern
-        Integer :event_id
-        Integer :aspace_relationship_position
-        DateTime :last_modified, :null => false
-        Integer :role_id
-      end
-
-      alter_table(table) do
-        add_foreign_key(["#{record}_id".intern], record, :key => :id)
-        add_foreign_key([:event_id], :event, :key => :id)
-        add_foreign_key(["role_id".intern], :enumeration_value, :key => :id)
-      end
+      Integer :accession_id
+      Integer :resource_id
+      Integer :archival_object_id
+      Integer :digital_object_id
+      Integer :agent_person_id
+      Integer :agent_family_id
+      Integer :agent_corporate_entity_id
+      Integer :agent_software_id
+      Integer :event_id
+      Integer :aspace_relationship_position
+      DateTime :last_modified, :null => false, :index => true
+      DynamicEnum :role_id
     end
 
-
-    # Collection management relationships
-    [:accession, :resource, :digital_object].each do |record|
-      table = [MigrationUtils.shorten_table("collection_management"),
-               MigrationUtils.shorten_table(record)].sort.join("_link_").intern
-
-
-      create_table(table) do
-        primary_key :id
-        Integer "#{record}_id".intern
-        Integer :collection_management_id
-        Integer :aspace_relationship_position
-        DateTime :last_modified, :null => false
-      end
-
-      alter_table(table) do
-        add_foreign_key(["#{record}_id".intern], record, :key => :id)
-        add_foreign_key([:collection_management_id], :collection_management, :key => :id)
-      end
+    alter_table(:event_link_rlshp) do
+      add_foreign_key([:accession_id], :accession, :key => :id)
+      add_foreign_key([:resource_id], :resource, :key => :id)
+      add_foreign_key([:archival_object_id], :archival_object, :key => :id)
+      add_foreign_key([:digital_object_id], :digital_object, :key => :id)
+      add_foreign_key([:agent_person_id], :agent_person, :key => :id)
+      add_foreign_key([:agent_family_id], :agent_family, :key => :id)
+      add_foreign_key([:agent_corporate_entity_id], :agent_corporate_entity, :key => :id)
+      add_foreign_key([:agent_software_id], :agent_software, :key => :id)
+      add_foreign_key([:event_id], :event, :key => :id)
     end
 
 
     # Accession/resource "spawned from" relationships
-    table = [MigrationUtils.shorten_table("accession"),
-             MigrationUtils.shorten_table("resource")].sort.join("_spawned_").intern
-
-    create_table(table) do
+    create_table(:spawned_rlshp) do
       primary_key :id
       Integer :accession_id
       Integer :resource_id
       Integer :aspace_relationship_position
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
     end
 
-    alter_table(table) do
+    alter_table(:spawned_rlshp) do
       add_foreign_key([:accession_id], :accession, :key => :id)
       add_foreign_key([:resource_id], :resource, :key => :id)
     end
 
 
-    # Subject relationships
-    [:accession, :archival_object, :resource, :digital_object, :digital_object_component].each do |record|
-      table = [MigrationUtils.shorten_table("subject"),
-               MigrationUtils.shorten_table(record)].sort.join("_subject_").intern
-
-
-      create_table(table) do
-        primary_key :id
-        Integer "#{record}_id".intern
-        Integer :subject_id
-        Integer :aspace_relationship_position
-        DateTime :last_modified, :null => false
-      end
-
-      alter_table(table) do
-        add_foreign_key(["#{record}_id".intern], record, :key => :id)
-        add_foreign_key([:subject_id], :subject, :key => :id)
-      end
+    create_table(:subject_rlshp) do
+      primary_key :id
+      Integer :accession_id
+      Integer :archival_object_id
+      Integer :resource_id
+      Integer :digital_object_id
+      Integer :digital_object_component_id
+      Integer :subject_id
+      Integer :aspace_relationship_position
+      DateTime :last_modified, :null => false, :index => true
     end
 
-    # Container/location relationships
-    table = [MigrationUtils.shorten_table("location"),
-             MigrationUtils.shorten_table("container")].sort.join("_housed_at_").intern
+    alter_table(:subject_rlshp) do
+      add_foreign_key([:accession_id], :accession, :key => :id)
+      add_foreign_key([:archival_object_id], :archival_object, :key => :id)
+      add_foreign_key([:resource_id], :resource, :key => :id)
+      add_foreign_key([:digital_object_id], :digital_object, :key => :id)
+      add_foreign_key([:digital_object_component_id], :digital_object_component, :key => :id)
+      add_foreign_key([:subject_id], :subject, :key => :id)
+    end
 
-    create_table(table) do
+
+    create_table(:housed_at_rlshp) do
       primary_key :id
       Integer :container_id
       Integer :location_id
       Integer :aspace_relationship_position
-      DateTime :last_modified, :null => false
+      DateTime :last_modified, :null => false, :index => true
 
       String :status
       String :start_date
@@ -1402,7 +1483,7 @@ Sequel.migration do
       String :note
     end
 
-    alter_table(table) do
+    alter_table(:housed_at_rlshp) do
       add_foreign_key([:container_id], :container, :key => :id)
       add_foreign_key([:location_id], :location, :key => :id)
     end

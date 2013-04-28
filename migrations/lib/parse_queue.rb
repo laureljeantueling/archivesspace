@@ -7,11 +7,11 @@ module ASpaceImport
   
       # Need to bypass some validation rules for 
       # JSON objects created by an import
-      
+
       # TODO: Speed things up by fixing this in ASpaceImport::JSONModel 
       # ..or, perhaps validation can be turned off altogether here
       
-      def self.validate(hash)
+      def self.validate(hash, raise_errors = true)
         begin
           super(hash)
         rescue JSONModel::ValidationException => e

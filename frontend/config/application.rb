@@ -8,6 +8,9 @@ require 'java'
 require 'config/config-distribution'
 require 'asutils'
 
+require "rails_config_bug_workaround"
+
+
 if defined?(Bundler)
   # If you precompile assets before deploying to production, use this line
   Bundler.require(*Rails.groups(:assets => %w(development test)))
@@ -15,7 +18,11 @@ if defined?(Bundler)
   # Bundler.require(:default, :assets, Rails.env)
 end
 
+
 module ArchivesSpace
+
+
+
   class Application < Rails::Application
     # Settings in config/environments/* take precedence over those specified here.
     # Application configuration should go into files in config/initializers
@@ -93,11 +100,7 @@ end
 
 
 if ENV['COVERAGE_REPORTS'] == 'true'
-  require 'tmpdir'
-  require 'pp'
-  require 'simplecov'
-
-  SimpleCov.command_name 'Frontend tests'
-  SimpleCov.start 'rails'
+  require 'aspace_coverage'
+  ASpaceCoverage.start('frontend:test', 'rails')
 end
 

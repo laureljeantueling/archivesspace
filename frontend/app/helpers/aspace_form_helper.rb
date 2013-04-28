@@ -261,6 +261,11 @@ module AspaceFormHelper
         value << "</small></label>".html_safe
       end
 
+      inline_help = I18n.t("#{i18n_for(name)}_inline_help", :default => '')
+      if !inline_help.empty?
+        value << "<span class=\"help-inline\">#{inline_help}</span>".html_safe
+      end
+
       value
     end
 
@@ -308,7 +313,7 @@ module AspaceFormHelper
     def label(name, opts = {})
       options = {:class => "control-label", :for => id_for(name)}
 
-      tooltip = I18n.t("#{i18n_for(name)}_tooltip", :default => '')
+      tooltip = I18n.t_raw("#{i18n_for(name)}_tooltip", :default => '')
       if not tooltip.empty?
         options[:title] = tooltip
         options["data-placement"] = "bottom"
@@ -348,6 +353,15 @@ module AspaceFormHelper
     end
 
 
+    def allowable_types_for(name)
+      if @active_template && @parent.templates[@active_template]
+        @parent.templates[@active_template][:definition].allowable_types_for(name)
+      else
+        []
+      end
+    end
+
+
     def possible_options_for(name, add_empty_options = false, opts = {})
       if @active_template && @parent.templates[@active_template]
         @parent.templates[@active_template][:definition].options_for(self, name, add_empty_options, opts)
@@ -360,7 +374,7 @@ module AspaceFormHelper
 
     def label_with_field(name, field_html, opts = {})
       control_group_classes = "control-group"
-      control_group_classes << " required" if opts["required"] or required?(name)
+      control_group_classes << " required" if opts["required"] or opts[:required] or required?(name)
       control_group_classes << " #{opts[:control_class]}" if opts.has_key? :control_class
 
       controls_classes = "controls"
@@ -443,7 +457,7 @@ module AspaceFormHelper
     s = "<div class=\"form-context\" id=\"form_#{name}\">".html_safe
     s << context.hidden_input("lock_version", values_from["lock_version"])
     s << capture(context, &body)
-    s << templates_for_js
+    s << templates_for_js(values_from["jsonmodel_type"])
     s << "</div>".html_safe
 
     s
@@ -485,7 +499,7 @@ module AspaceFormHelper
       if jsonmodel_schema_definition(name)
         if jsonmodel_schema_definition(name).has_key?('dynamic_enum')
           if jsonmodel_schema_definition(name)['default']
-            Rails.logger.warn("Superfluous default value at: JSONModel(:#{@jsonmodel.jsonmodel_type}).#{name} ")
+            Rails.logger.warn("Superfluous default value at: #{@jsonmodel}.#{name} ")
           end
           JSONModel.enum_default_value(jsonmodel_schema_definition(name)['dynamic_enum'])
         else
@@ -493,6 +507,20 @@ module AspaceFormHelper
         end  
       else
         nil
+      end
+    end
+
+
+    def allowable_types_for(name)
+      defn = jsonmodel_schema_definition(name)
+
+      if defn
+        ASUtils.extract_nested_strings(defn).map {|s|
+          ref = JSONModel.parse_jsonmodel_ref(s)
+          ref.first.to_s if ref
+        }.compact
+      else
+        []
       end
     end
 
@@ -572,13 +600,16 @@ module AspaceFormHelper
   end
 
 
-  def templates_for_js
+  def templates_for_js(jsonmodel_type = nil)
     result = ""
 
     return result if @templates.blank?
 
+    obj = {}
+    obj['jsonmodel_type'] = jsonmodel_type if jsonmodel_type
+
     @templates.each do |name, template|
-      context = FormContext.new("${path}", {}, self)
+      context = FormContext.new("${path}", obj, self)
 
       def context.id_for(name, qualify = true)
         name = path(name) if qualify

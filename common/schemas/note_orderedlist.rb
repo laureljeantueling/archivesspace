@@ -1,11 +1,12 @@
 {
   :schema => {
     "$schema" => "http://www.archivesspace.org/archivesspace.json",
+    "version" => 1,
     "type" => "object",
 
     "properties" => {
 
-      "title" => {"type" => "string", "ifmissing" => "error", "maxLength" => 32672},
+      "title" => {"type" => "string", "ifmissing" => "error", "maxLength" => 16384},
 
       "publish" => {"type" => "boolean", "default" => true},
       "internal" => {"type" => "boolean", "default" => false},
@@ -13,14 +14,14 @@
       "enumeration" => {
         "type" => "string",
         "ifmissing" => "error",
-        "enum" => ["arabic", "loweralpha", "upperalpha", "lowerroman", "upperroman", "null"]
+        "dynamic_enum" => "note_orderedlist_enumeration"
       },
 
       "items" => {
         "type" => "array",
         "items" => {
           "type" => "string",
-          "maxLength" => 32672
+          "maxLength" => 65000
         }
       }
     },

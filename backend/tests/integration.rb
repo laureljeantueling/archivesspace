@@ -8,6 +8,8 @@ require 'net/http'
 require 'test_utils'
 require_relative '../../indexer/app/lib/periodic_indexer.rb'
 require 'ladle'
+require 'simplecov'
+
 
 Dir.chdir(File.dirname(__FILE__))
 $solr_port = 2999
@@ -69,6 +71,23 @@ end
 
 def run_tests(opts)
 
+  test_user = "testuser_#{Time.now.to_i}_#{$$}"
+
+  puts "Create a test user"
+  r = do_post({:username => test_user, :name => test_user}.to_json,
+              url("/users?password=testuser"))
+  r[:body]['status'] == 'Created' or fail("Test user creation", r)
+
+
+  puts "Check local username completion"
+  r = do_get(url("/users/complete?query=#{test_user}"))
+  r[:body].first == test_user or fail("Local username completion", r)
+
+  puts "Check local username completion excludes system users"
+  r = do_get(url("/users/complete?query=admin"))
+  !r[:body].include?("admin") or fail("Local username completion excludes system users", r)
+
+
   puts "Create an admin session"
   r = do_post(URI.encode_www_form(:password => "admin"),
               url("/users/admin/login?expiring=false"))
@@ -103,13 +122,13 @@ def run_tests(opts)
                 :title => "integration test accession #{$$}",
                 :accession_date => "2011-01-01"
               }.to_json,
-              url("/repositories/#{repo_id}/accessions"));
+              url("/repositories/#{repo_id}/accessions"))
 
   acc_id = r[:body]["id"] or fail("Accession creation", r)
 
 
   puts "Request the accession"
-  r = do_get(url("/repositories/#{repo_id}/accessions/#{acc_id}"));
+  r = do_get(url("/repositories/#{repo_id}/accessions/#{acc_id}"))
 
   r[:body]["title"] =~ /integration test accession/ or
     fail("Accession fetch", r)
@@ -123,7 +142,7 @@ def run_tests(opts)
                 :external_ids => [{'source' => 'mark', 'external_id' => 'rhubarb'}],
                 :accession_date => "2011-01-01"
               }.to_json,
-              url("/repositories/#{second_repo_id}/accessions"));
+              url("/repositories/#{second_repo_id}/accessions"))
 
   r[:body]["id"] or fail("Second accession creation", r)
 
@@ -141,7 +160,7 @@ def run_tests(opts)
   r = do_post({
                 :terms => [
                            :term => "Some term #{$me}",
-                           :term_type => "Function",
+                           :term_type => "function",
                            :vocabulary => "/vocabularies/1"
                           ],
                 :vocabulary => "/vocabularies/1"
@@ -206,6 +225,11 @@ def run_tests(opts)
 
     r = do_get(url(r[:body]["user"]["uri"]))
     (r[:body]['name'] == 'Mark Triggs') or fail("User attributes from LDAP", r)
+
+
+    puts "Check username completion"
+    r = do_get(url("/users/complete?query=mark"))
+    r[:body].first == "marktriggs" or fail("LDAP username completion", r)
   end
 
 
@@ -240,6 +264,19 @@ def run_tests(opts)
   r = do_get(url("/by-external-id?eid=rhubarb"), true)
   r.code == '303' or fail("fetch by external ID", r)
 
+
+  puts "It can generate accession reports"
+  r = do_post({
+                :id_0 => "thisthat#{$me}",
+                :title => "This & That (#{$$})",
+                :accession_date => "2011-01-01"
+              }.to_json,
+              url("/repositories/#{repo_id}/accessions"))
+
+  ["pdf", "json", "xlsx", "csv"].each do |fmt|
+    r = do_get(url("/repositories/#{repo_id}/reports/unprocessed_accessions?format=#{fmt}"), true)
+    r.code == '200' or fail("Accession report (#{fmt})", r)
+  end
 
   puts "Create an expiring admin session"
   r = do_post(URI.encode_www_form(:password => "admin"),

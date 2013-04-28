@@ -6,7 +6,9 @@ class DigitalObjectsController < ApplicationController
   FIND_OPTS = ["subjects", "linked_agents", "linked_instances"]
 
   def index
-    @search_data = JSONModel(:digital_object).all(:page => selected_page)
+    facets = ["subjects", "publish"]
+
+    @search_data = Search.for_type(session[:repo_id], "digital_object", search_params.merge({"facet[]" => facets}))
   end
 
   def show
@@ -49,7 +51,7 @@ class DigitalObjectsController < ApplicationController
                                 :action => :edit,
                                 :id => id
                               },
-                              :flash => {:success => I18n.t("digital_object._html.messages.created")}) 
+                              :flash => {:success => I18n.t("digital_object._html.messages.created", JSONModelI18nWrapper.new(:digital_object => @digital_object))})
                 })
   end
 
@@ -62,7 +64,7 @@ class DigitalObjectsController < ApplicationController
                   render :partial => "edit_inline"
                 },
                 :on_valid => ->(id){
-                  flash.now[:success] = I18n.t("digital_object._html.messages.updated")
+                  flash.now[:success] = I18n.t("digital_object._html.messages.updated", JSONModelI18nWrapper.new(:digital_object => @digital_object))
                   render :partial => "edit_inline"
                 })
   end

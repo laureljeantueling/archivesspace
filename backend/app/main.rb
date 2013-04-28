@@ -1,6 +1,11 @@
 require 'bundler'
 Bundler.require
 
+if ENV['COVERAGE_REPORTS'] && ENV["ASPACE_INTEGRATION"] == "true"
+  require 'aspace_coverage'
+  ASpaceCoverage.start('backend_integration')
+end
+
 require_relative 'lib/bootstrap'
 require_relative 'lib/uri_resolver'
 require_relative 'lib/rest'
@@ -8,10 +13,11 @@ require_relative 'lib/crud_helpers'
 require_relative 'lib/notifications'
 require_relative 'lib/export'
 require_relative 'lib/request_context.rb'
-require_relative 'lib/webrick_fix'
 require_relative 'lib/import_helpers'
 require_relative 'lib/reports/report_helper'
 require_relative 'lib/component_transfer'
+
+require 'solr_snapshotter'
 
 require 'uri'
 require 'sinatra/base'
@@ -50,6 +56,12 @@ class ArchivesSpaceService < Sinatra::Base
     config.dont_reload File.join("**", "spec", "*.rb")
     config.also_reload File.join("../", "migrations", "lib", "exporter.rb")
     config.also_reload File.join("../", "migrations", "serializers", "*.rb")
+
+    set :server, :puma
+  end
+
+  configure :test do |config|
+    set :server, :puma
   end
 
 
@@ -136,21 +148,20 @@ class ArchivesSpaceService < Sinatra::Base
           settings.scheduler.cron(AppConfig[:solr_backup_schedule],
                                   :tags => 'solr_backup') do
             Log.info("Creating snapshot of Solr index and indexer state")
-            Solr.snapshot
+            SolrSnapshotter.snapshot
           end
         end
 
       end
 
+      ANONYMOUS_USER = AnonymousUser.new
+
+      require_relative "lib/bootstrap_access_control"
+
       @loaded_hooks.each do |hook|
         hook.call
       end
       @archivesspace_loaded = true
-
-
-      ANONYMOUS_USER = AnonymousUser.new
-
-      require_relative "lib/bootstrap_access_control"
 
       Notifications.notify("BACKEND_STARTED")
 
@@ -227,6 +238,7 @@ class ArchivesSpaceService < Sinatra::Base
   end
 
   error Sequel::DatabaseError do
+    Log.exception(request.env['sinatra.error'])
     json_response({:error => {:db_error => ["Database integrity constraint conflict: #{request.env['sinatra.error']}"]}}, 400)
   end
 
@@ -343,13 +355,8 @@ if $0 == __FILE__
   Log.info("Dev server starting up...")
 
   ArchivesSpaceService.run!(:port => (ARGV[0] or 4567)) do |server|
-    server.instance_eval do
-      @config[:AccessLog] = []
-    end
-
     def server.stop
-
-      # Shutdown long polling threads that would otherwise hold up WEBrick.
+      # Shutdown long polling threads that would otherwise hold things up.
       Notifications.shutdown
       RealtimeIndexing.shutdown
 

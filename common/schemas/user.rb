@@ -1,6 +1,7 @@
 {
   :schema => {
     "$schema" => "http://www.archivesspace.org/archivesspace.json",
+    "version" => 1,
     "type" => "object",
     "uri" => "/users",
     "properties" => {
@@ -27,7 +28,7 @@
       "telephone" => {"type" => "string", "maxLength" => 255},
       "title" => {"type" => "string", "maxLength" => 255},
       "department" => {"type" => "string", "maxLength" => 255},
-      "additional_contact" => {"type" => "string", "maxLength" => 32672},
+      "additional_contact" => {"type" => "string", "maxLength" => 65000},
 
       "agent_record" => {
         "type" => "object",

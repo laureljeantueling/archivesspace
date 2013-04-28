@@ -1,5 +1,6 @@
 require_relative 'spec_helper'
-require_relative '../../indexer/app/lib/periodic_indexer'
+require_relative '../../indexer/app/lib/realtime_indexer'
+
 
 
 describe "ArchivesSpace user interface" do
@@ -7,21 +8,13 @@ describe "ArchivesSpace user interface" do
   # Start the dev servers and Selenium
   before(:all) do
     selenium_init($backend_start_fn, $frontend_start_fn)
-    state = Object.new.instance_eval do
-      @store = {}
+    @indexer = RealtimeIndexer.new($backend, nil)
+  end
 
-      def get_last_mtime(repo_id, record_type)
-        @store[[repo_id, record_type]].to_i || 0
-      end
 
-      def set_last_mtime(repo_id, record_type, time)
-        @store[[repo_id, record_type]] = time
-      end
-
-      self
-    end
-
-    @indexer = PeriodicIndexer.get_indexer(state)
+  def run_index_round
+    @last_sequence ||= 0
+    @last_sequence = @indexer.run_index_round(@last_sequence)
   end
 
 
@@ -114,6 +107,30 @@ describe "ArchivesSpace user interface" do
       $driver.find_element(:link, 'Select Repository').click
       assert(5) { $driver.find_element(:css, '.select-a-repository').select_option_with_text(new_repo_code) }
     end
+
+
+    it "paginates the list when more than 10 repositories" do
+      10.times.each do |i|
+        create_test_repo("quickrepofortesting#{i}_#{Time.now.to_i}_#{$$}",
+                         "quickrepofortesting#{i}_#{Time.now.to_i}_#{$$}",
+                         false)
+      end
+
+      run_index_round
+
+      $driver.find_element(:link, 'System').click
+      $driver.find_element(:link, "Manage Repositories").click
+
+      $driver.find_element(:css, '.pagination .active a').text.should eq('1')
+
+      $driver.find_element(:link, '2').click
+      $driver.find_element(:css, '.pagination .active a').text.should eq('2')
+
+      $driver.find_element(:link, '1').click
+      $driver.find_element(:css, '.pagination .active a').text.should eq('1')
+      $driver.find_element(:link, '2')
+    end
+
   end
 
 
@@ -214,6 +231,12 @@ describe "ArchivesSpace user interface" do
       }.to_not raise_error
     end
 
+
+    it "can get a list of usernames matching a string" do
+      $driver.get(URI.join($frontend, "/users/complete?query=#{URI.escape(@user)}"))
+      $driver.page_source.should match(/#{@user}/)
+      $driver.get(URI.join($frontend))
+    end
 
     it "can log out of the admin account" do
       logout
@@ -496,8 +519,10 @@ describe "ArchivesSpace user interface" do
     it "can add a Biog/Hist note to an Agent" do
       $driver.find_element(:link, 'Edit').click
       $driver.find_element(:css => '#notes .subrecord-form-heading .btn').click
-      $driver.blocking_find_elements(:css => '#notes .subrecord-selector select')[0].select_option("note_bioghist")
-      $driver.find_element(:css => '#notes .subrecord-selector .btn').click
+      $driver.blocking_find_elements(:css => '#notes .top-level-note-type')[0].select_option("note_bioghist")
+
+      # ensure note form displayed
+      $driver.find_element(:id, "agent_notes__0__label_")
 
       biog = "Jimi was an American musician and songwriter; and one of the most influential electric guitarists in the history of popular music."
       $driver.execute_script("$('#agent_notes__0__content__0_').data('CodeMirror').setValue('#{biog}')")
@@ -517,8 +542,10 @@ describe "ArchivesSpace user interface" do
 
       # Add a sub note
       notes[0].find_element(:css => '.subrecord-form-heading .btn').click
-      notes[0].find_element(:css => '.subrecord-selector select').select_option('note_outline')
-      notes[0].find_element(:css => '.add-sub-note-btn').click
+      notes[0].find_element(:css => 'select.bioghist-note-type').select_option('note_outline')
+
+      # ensure sub note form displayed
+      $driver.find_element(:id, "agent_notes__0__subnotes__2__publish_")
 
       notes[0].find_element(:css => ".add-level-btn").click
       notes[0].find_element(:css => ".add-sub-item-btn").click
@@ -535,7 +562,7 @@ describe "ArchivesSpace user interface" do
 
 
     it "displays the agent in the agent's index page" do
-      @indexer.run_index_round
+      run_index_round
 
       $driver.get(URI.join($frontend, "/agents?&sort=create_time+desc"))
 
@@ -546,7 +573,7 @@ describe "ArchivesSpace user interface" do
 
 
     it "returns agents in search results and shows their types correctly" do
-      @indexer.run_index_round
+      run_index_round
 
       $driver.clear_and_send_keys([:id, "global-search-box"], "Hendrix")
       $driver.find_element(:id => 'global-search-button').click
@@ -835,7 +862,7 @@ describe "ArchivesSpace user interface" do
 
 
     it "can show a browse list of Accessions" do
-      @indexer.run_index_round
+      run_index_round
       
       $driver.find_element(:link, "Browse").click
       $driver.find_element(:link, "Accessions").click
@@ -851,7 +878,7 @@ describe "ArchivesSpace user interface" do
     before(:all) do
       login_as_repo_manager
       @accession_title = create_accession("My accession to test the record lifecycle")
-      @indexer.run_index_round
+      run_index_round
     end
 
 
@@ -872,10 +899,10 @@ describe "ArchivesSpace user interface" do
       $driver.find_element(:css, ".suppress-record.btn").click
       $driver.find_element(:css, "#confirmChangesModal #confirmButton").click
 
-      assert(5) { $driver.find_element(:css => "div.alert.alert-success").text.should eq('Accession Suppressed') }
+      assert(5) { $driver.find_element(:css => "div.alert.alert-success").text.should eq("Accession #{@accession_title} suppressed") }
       assert(5) { $driver.find_element(:css => "div.alert.alert-info").text.should eq('Accession is suppressed and cannot be edited') }
 
-      @indexer.run_index_round
+      run_index_round
 
       # Try to navigate to the edit form
       $driver.get("#{$accession_url}/edit")
@@ -915,7 +942,7 @@ describe "ArchivesSpace user interface" do
       $driver.find_element(:css, ".unsuppress-record.btn").click
       $driver.find_element(:css, "#confirmChangesModal #confirmButton").click
 
-      assert(5) { $driver.find_element(:css => "div.alert.alert-success").text.should eq('Accession Unsuppressed') }
+      assert(5) { $driver.find_element(:css => "div.alert.alert-success").text.should eq("Accession #{@accession_title} unsuppressed") }
     end
 
 
@@ -925,9 +952,9 @@ describe "ArchivesSpace user interface" do
       $driver.find_element(:css, "#confirmChangesModal #confirmButton").click
 
       #Ensure Accession no longer exists
-      assert(5) { $driver.find_element(:css => "div.alert.alert-success").text.should eq('Accession Deleted') }
+      assert(5) { $driver.find_element(:css => "div.alert.alert-success").text.should eq("Accession #{@accession_title} deleted") }
 
-      @indexer.run_index_round
+      run_index_round
 
       # hmm boo.. refresh the page now that the indexer is refreshed
       $driver.navigate.refresh
@@ -952,7 +979,7 @@ describe "ArchivesSpace user interface" do
       login_as_archivist
       @accession_title = create_accession("Events link to this accession")
       @agent_name = create_agent("Geddy Lee")
-      @indexer.run_index_round
+      run_index_round
     end
 
 
@@ -982,6 +1009,8 @@ describe "ArchivesSpace user interface" do
       token_input.send_keys("Geddy")
       $driver.find_element(:css, "li.token-input-dropdown-item2").click
 
+      $driver.find_element(:id, "event_linked_records__0__role_").select_option('source')
+
       record_subform = $driver.find_element(:id, "event_linked_records__0__role_").
                                nearest_ancestor('div[contains(@class, "subrecord-form-container")]')
 
@@ -992,6 +1021,11 @@ describe "ArchivesSpace user interface" do
       $driver.find_element(:css, "li.token-input-dropdown-item2").click
 
       $driver.find_element(:css => "form#new_event button[type='submit']").click
+
+      # Success!
+      assert(5) {
+        $driver.find_element_with_text('//div', /Event Created/).should_not be_nil
+      }
     end
   end
 
@@ -1048,7 +1082,7 @@ describe "ArchivesSpace user interface" do
 
       # Success!
       assert(5) {
-        $driver.find_element_with_text('//div', /Resource Created/).should_not be_nil
+        $driver.find_element_with_text('//div', /Resource A box of enraged guinea pigs created/).should_not be_nil
       }
     end
 
@@ -1097,8 +1131,7 @@ describe "ArchivesSpace user interface" do
 
 
     it "reports errors if adding an empty child to a Resource" do
-      $driver.find_element(:link, "Add Child").click
-      $driver.find_element(:link, "Archival Object").click
+      $driver.find_element(:link, "Add Component").click
 
       $driver.clear_and_send_keys([:id, "archival_object_title_"], "")
 
@@ -1178,15 +1211,15 @@ describe "ArchivesSpace user interface" do
       $driver.clear_and_send_keys([:id, "archival_object_title_"], "save this please")
       $driver.find_element(:css => "form .record-pane button[type='submit']").click
       assert(5) { $driver.find_element(:css, "h2").text.should eq("save this please Archival Object") }
-      assert(5) { $driver.find_element(:css => "div.alert.alert-success").text.should eq('Archival Object Saved') }
+      assert(5) { $driver.find_element(:css => "div.alert.alert-success").text.should eq('Archival Object save this please updated') }
       $driver.clear_and_send_keys([:id, "archival_object_title_"], aotitle)
       $driver.find_element(:css => "form .record-pane button[type='submit']").click
     end
 
 
     it "can add a child to an existing node and assign a Subject" do
-      $driver.find_element(:link, "Add Child").click
-      $driver.find_element(:link, "Archival Object").click
+      $driver.find_element(:link, "Add Component").click
+
       $driver.clear_and_send_keys([:id, "archival_object_title_"], "Christmas cards")
       $driver.find_element(:id, "archival_object_level_").select_option("item")
 
@@ -1207,7 +1240,7 @@ describe "ArchivesSpace user interface" do
 
       # search for the created subject
       assert(5) {
-        @indexer.run_index_round
+        run_index_round
         $driver.clear_and_send_keys([:id, "token-input-archival_object_subjects__0__ref_"], "#{$$}TestTerm123")
         $driver.find_element(:css, "li.token-input-dropdown-item2").click
       }
@@ -1254,6 +1287,7 @@ describe "ArchivesSpace user interface" do
     it "shows our newly added Resource in the browse list" do
       $driver.find_element(:link, "Browse").click
       $driver.find_element(:link, "Resources").click
+
       $driver.find_element_with_text('//td', /#{resource_title}/)
     end
 
@@ -1275,7 +1309,7 @@ describe "ArchivesSpace user interface" do
 
       $driver.find_element(:css => "form#resource_form button[type='submit']").click
 
-      $driver.find_element_with_text('//div', /Resource Saved/).should_not be_nil
+      $driver.find_element_with_text('//div', /Resource #{resource_title} updated/).should_not be_nil
 
       $driver.find_element(:link, 'Finish Editing').click
     end
@@ -1330,8 +1364,7 @@ describe "ArchivesSpace user interface" do
 
       add_note = proc do |type|
         $driver.find_element(:css => '#notes .subrecord-form-heading .btn').click
-        $driver.blocking_find_elements(:css => '#notes .subrecord-selector select')[0].select_option(type)
-        $driver.find_element(:css => '#notes .subrecord-selector .btn').click
+        $driver.find_last_element(:css => '#notes select.top-level-note-type:last-of-type').select_option(type)
       end
 
       3.times do
@@ -1387,16 +1420,14 @@ describe "ArchivesSpace user interface" do
 
       # Add a sub note
       notes[0].find_element(:css => '.subrecord-form-heading .btn').click
-      notes[0].find_element(:css => '.subrecord-selector select').select_option('note_chronology')
-      notes[0].find_element(:css => '.add-sub-note-btn').click
+      notes[0].find_last_element(:css => 'select.multipart-note-type').select_option('note_chronology')
 
       $driver.find_element(:id => 'resource_notes__0__subnotes__2__title_')
       $driver.clear_and_send_keys([:id, 'resource_notes__0__subnotes__2__title_'], "Chronology title")
 
 
       notes[0].find_element(:css => '.subrecord-form-heading .btn').click
-      notes[0].find_element(:css => '.subrecord-selector select').select_option('note_definedlist')
-      notes[0].find_element(:css => '.add-sub-note-btn').click
+      notes[0].find_last_element(:css => 'select.multipart-note-type').select_option('note_definedlist')
 
       $driver.clear_and_send_keys([:id, 'resource_notes__0__subnotes__3__title_'], "Defined list")
 
@@ -1427,9 +1458,8 @@ describe "ArchivesSpace user interface" do
 
       $driver.find_element(:link, 'Edit').click
 
-      add_note_button = $driver.find_element(:css => '#notes > .subrecord-form-heading .btn').click
-      $driver.find_element(:css => '#notes > .subrecord-form-heading select').select_option("note_bibliography")
-      $driver.find_element(:css => '#notes > .subrecord-form-heading .subrecord-selector .btn').click
+      $driver.find_element(:css => '#notes > .subrecord-form-heading .btn').click
+      $driver.find_last_element(:css => 'select.top-level-note-type').select_option("note_bibliography")
 
       $driver.clear_and_send_keys([:id, 'resource_notes__6__label_'], "Top-level bibliography label")
       $driver.execute_script("$('#resource_notes__6__content__0_').data('CodeMirror').setValue('#{bibliography_content}')")
@@ -1501,8 +1531,8 @@ describe "ArchivesSpace user interface" do
       $driver.find_element(:css => "form#resource_form button[type='submit']").click
 
       # Give it a child AO
-      $driver.find_element(:link, "Add Child").click
-      $driver.find_element(:link, "Archival Object").click
+      $driver.find_element(:link, "Add Component").click
+
       $driver.clear_and_send_keys([:id, "archival_object_title_"], "An Archival Object with notes")
       $driver.find_element(:id, "archival_object_level_").select_option("item")
 
@@ -1510,8 +1540,7 @@ describe "ArchivesSpace user interface" do
       # Add some notes to it
       add_note = proc do |type|
         $driver.find_element(:css => '#notes .subrecord-form-heading .btn').click
-        $driver.blocking_find_elements(:css => '#notes .subrecord-selector select')[0].select_option(type)
-        $driver.find_element(:css => '#notes .subrecord-selector .btn').click
+        $driver.find_last_element(:css => '#notes select.top-level-note-type').select_option(type)
       end
 
       3.times do
@@ -1536,14 +1565,7 @@ describe "ArchivesSpace user interface" do
 
       # Add a Summary note
       $driver.find_element(:css => '#notes .subrecord-form-heading .btn').click
-      select = $driver.blocking_find_elements(:css => '#notes .subrecord-selector select')[0]
-      select.find_elements(:tag_name => "option").each do |option|
-        if option.text == "Summary"
-          option.click
-          break
-        end
-      end
-      $driver.find_element(:css => '#notes .subrecord-selector .btn').click
+      $driver.find_last_element(:css => '#notes select.top-level-note-type').select_option_with_text("Summary")
 
       $driver.clear_and_send_keys([:id, 'digital_object_notes__0__label_'], "Summary label")
       $driver.execute_script("$('#digital_object_notes__0__content__0_').data('CodeMirror').setValue('Summary content')")
@@ -1603,8 +1625,7 @@ describe "ArchivesSpace user interface" do
 
 
     it "reports errors if adding an empty child to a Digital Object" do
-      $driver.find_element(:link, "Add Child").click
-      $driver.find_element(:link, "Digital Object Component").click
+      $driver.find_element(:link, "Add Component").click
 
       # False start: create an object without filling it out
       $driver.click_and_wait_until_gone(:id => "createPlusOne")
@@ -1653,8 +1674,7 @@ describe "ArchivesSpace user interface" do
 
     it "can drag and drop reorder a Digital Object" do
       # create grand child
-      $driver.find_element(:link, "Add Child").click
-      $driver.find_element(:link, "Digital Object Component").click
+      $driver.find_element(:link, "Add Component").click
 
       $driver.clear_and_send_keys([:id, "digital_object_component_title_"], "ICO")
       $driver.clear_and_send_keys([:id, "digital_object_component_component_id_"],(Digest::MD5.hexdigest("#{Time.now}")))

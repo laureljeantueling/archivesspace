@@ -10,7 +10,7 @@ class Solr
 
 
   def self.search(query, page, page_size, repo_id,
-                  record_types = nil, show_suppressed = false,
+                  record_types = nil, show_suppressed = false, show_published_only = false,
                   excluded_ids = [], extra_solr_params = {})
     url = solr_url
 
@@ -42,6 +42,10 @@ class Solr
       opts << [:fq, "suppressed:false"]
     end
 
+    if show_published_only
+      opts << [:fq, "publish:true"]
+    end
+
     if excluded_ids && !excluded_ids.empty?
       query = excluded_ids.map { |id| "\"#{id}\"" }.join(' OR ')
       opts << [:fq, "-id:(#{query})"]
@@ -61,7 +65,7 @@ class Solr
         result = {}
 
         result['first_page'] = 1
-        result['last_page'] = (json['response']['numFound'] / page_size.to_f).floor + 1
+        result['last_page'] = (json['response']['numFound'] / page_size.to_f).ceil
         result['this_page'] = (json['response']['start'] / page_size) + 1
 
         result['offset_first'] = json['response']['start'] + 1
@@ -80,55 +84,6 @@ class Solr
       else
         raise "Solr search failed: #{solr_response.body}"
       end
-    end
-  end
-
-
-  def self.expire_snapshots
-    backups = []
-    backups_dir = AppConfig[:solr_backup_directory]
-
-    Dir.foreach(backups_dir) do |filename|
-      if filename =~ /^solr\.[0-9]+$/
-        backups << File.join(backups_dir, filename)
-      end
-    end
-
-    victims = backups.sort.reverse.drop(AppConfig[:solr_backup_number_to_keep])
-
-    victims.each do |backup_dir|
-
-      if File.exists?(File.join(backup_dir, "indexer_state"))
-        Log.info("Expiring old Solr snapshot: #{backup_dir}")
-        FileUtils.rm_rf(backup_dir)
-      else
-        Log.warn("Too cowardly to delete: #{backup_dir}")
-      end
-    end
-
-  end
-
-
-
-  def self.snapshot
-    timestamp = Time.now.to_i
-
-    target = File.join(AppConfig[:solr_backup_directory], "solr.#{timestamp}")
-
-    FileUtils.mkdir_p(target)
-
-    FileUtils.cp_r(File.join(AppConfig[:data_directory], "indexer_state"),
-                   target)
-
-    response = Net::HTTP.get_response(URI.join(AppConfig[:solr_url],
-                                               "/replication?command=backup&numberToKeep=1"))
-
-    if response.code == '200'
-      latest = Dir.glob(File.join(AppConfig[:solr_index_directory], "snapshot.*")).sort.last
-
-      FileUtils.mv(latest, target)
-
-      self.expire_snapshots
     end
   end
 

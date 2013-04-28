@@ -1,8 +1,10 @@
 require 'json-schema'
+require 'atomic'
 require 'uri'
 require_relative 'json_schema_concurrency_fix'
 require_relative 'json_schema_utils'
 require_relative 'asutils'
+require_relative 'validator_cache'
 
 
 module JSONModel
@@ -146,6 +148,14 @@ module JSONModel
 
         base = @@models[parent].schema["properties"].clone
         properties = self.deep_merge(base, entry[:schema]["properties"])
+
+        # Maybe we'll eventually want the version of a schema to be
+        # automatically set to max(my_version, parent_version), but for now...
+        if entry[:schema]["version"] < @@models[parent].schema_version
+          raise ("Can't inherit from a JSON schema whose version is newer than ours " +
+                 "(our (#{schema_name}) version: #{entry[:schema]['version']}; " +
+                 "parent (#{parent}) version: #{@@models[parent].schema_version})")
+        end
 
         entry[:schema]["properties"] = properties
       end
@@ -315,18 +325,31 @@ module JSONModel
       # If this class is subclassed, we won't be able to see our class instance
       # variables unless we explicitly look up the inheritance chain.
       def self.find_ancestor_class_instance(variable)
-        self.ancestors.each do |clz|
-          val = clz.instance_variable_get(variable)
-          return val if val
+        @ancestor_instance_variables ||= Atomic.new({})
+
+        if !@ancestor_instance_variables.value[variable]
+          self.ancestors.each do |clz|
+            val = clz.instance_variable_get(variable)
+            if val
+              @ancestor_instance_variables.update {|vs| vs.merge({variable => val})}
+              break
+            end
+          end
         end
 
-        nil
+        @ancestor_instance_variables.value[variable]
       end
 
 
       # Return the JSON schema that defines this JSONModel class
       def self.schema
         find_ancestor_class_instance(:@schema)
+      end
+
+
+      # Return the version number of this JSONModel's schema
+      def self.schema_version
+        self.schema['version']
       end
 
 
@@ -378,18 +401,24 @@ module JSONModel
 
 
       # Create an instance of this JSONModel from the data contained in 'hash'.
-      def self.from_hash(hash, raise_errors = true)
+      def self.from_hash(hash, raise_errors = true, trusted = false)
         hash["jsonmodel_type"] = self.record_type.to_s
 
         # If we're running in client mode, leave 'readonly' properties in place,
         # since they're intended for use by clients.  Otherwise, we drop them.
         drop_system_properties = !JSONModel.client_mode?
 
-        cleaned = JSONSchemaUtils.drop_unknown_properties(hash, self.schema, drop_system_properties)
-        cleaned = ASUtils.jsonmodels_to_hashes(cleaned)
-        validate(cleaned, raise_errors)
+        if trusted
+          # We got this data from a trusted source (such as another JSONModel
+          # that had already been validated itself).  No need to double up
+          self.new(hash, [], true)
+        else
+          cleaned = JSONSchemaUtils.drop_unknown_properties(hash, self.schema, drop_system_properties)
+          cleaned = ASUtils.jsonmodels_to_hashes(cleaned)
+          validate(cleaned, raise_errors)
 
-        self.new(cleaned)
+          self.new(cleaned)
+        end
       end
 
 
@@ -487,7 +516,7 @@ module JSONModel
       end
 
 
-      def initialize(params = {}, warnings = [])
+      def initialize(params = {}, warnings = [], trusted = false)
         set_data(params)
         @warnings = warnings
 
@@ -495,6 +524,12 @@ module JSONModel
         @instance_data = {}
 
         self.class.define_accessors(@data.keys)
+
+        if trusted
+          @validated = {}
+          @cleaned_data = @data
+        end
+
       end
 
 
@@ -526,21 +561,20 @@ module JSONModel
 
         exceptions = {}
         if not @always_valid
-          exceptions = self.class.validate(@data, false).reject{|k, v| v.empty?}
+          exceptions = self.validate(@data, false)
         end
 
         if @errors
           exceptions[:errors] = (exceptions[:errors] or {}).merge(@errors)
         end
 
-        @validated = exceptions
         exceptions
       end
 
 
       def add_error(attribute, message)
         # reset validation
-        @validated = nil
+        @validated = false
 
         super
       end
@@ -610,15 +644,19 @@ module JSONModel
 
         return @data if mode == :raw
 
+        if @validated and @cleaned_data
+          @cleaned_data
+        end
+
         cleaned = JSONSchemaUtils.drop_unknown_properties(@data, self.class.schema)
         cleaned = ASUtils.jsonmodels_to_hashes(cleaned)
 
         if mode == :validated
           @validated = false
-          self.class.validate(cleaned)
+          self.validate(cleaned)
         end
 
-        cleaned
+        @cleaned_data = cleaned
       end
 
 
@@ -641,29 +679,31 @@ module JSONModel
       end
 
 
+      def validate(data, raise_errors = true)
+        @validated = self.class.validate(data, raise_errors)
+      end
+
+
       # Validate the supplied hash using the JSON schema for this model.  Raise
       # a ValidationException if there are any fatal validation problems, or if
       # strict mode is enabled and warnings were produced.
       def self.validate(hash, raise_errors = true)
 
-        JSON::Validator.cache_schemas = true
+        properties = JSONSchemaUtils.drop_unknown_properties(hash, self.schema)
+        ValidatorCache.with_validator_for(self, properties) do |validator|
 
-        validator = JSON::Validator.new(self.schema,
-                                        JSONSchemaUtils.drop_unknown_properties(hash, self.schema),
-                                        :errors_as_objects => true,
-                                        :record_errors => true)
+          messages = validator.validate
+          exceptions = JSONSchemaUtils.parse_schema_messages(messages, validator)
 
-        messages = validator.validate
-        exceptions = JSONSchemaUtils.parse_schema_messages(messages, validator)
+          if raise_errors && (!exceptions[:errors].empty? || (@@strict_mode && !exceptions[:warnings].empty?))
+            raise ValidationException.new(:invalid_object => self.new(hash),
+                                          :warnings => exceptions[:warnings],
+                                          :errors => exceptions[:errors],
+                                          :attribute_types => exceptions[:attribute_types])
+          end
 
-        if raise_errors && (!exceptions[:errors].empty? || (@@strict_mode && !exceptions[:warnings].empty?))
-          raise ValidationException.new(:invalid_object => self.new(hash),
-                                        :warnings => exceptions[:warnings],
-                                        :errors => exceptions[:errors],
-                                        :attribute_types => exceptions[:attribute_types])
+          exceptions.reject{|k, v| v.empty?}
         end
-
-        exceptions
       end
 
 

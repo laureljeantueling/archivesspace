@@ -237,17 +237,17 @@ eof
   end
 
 
-  def self.deblob(s)
-    if s
-      if @pool.database_type == :h2
-        # Interestingy, the H2 database seems to be returning hex-encoded
-        # strings for blobs.  Working around for now, but should look into
-        # what's really happening here later.
-        [s].pack("H*")
-      else
-        s
-      end
+  def self.increase_lock_version_or_fail(obj)
+    updated_rows = obj.class.dataset.filter(:id => obj.id, :lock_version => obj.lock_version).
+                       update(:lock_version => obj.lock_version + 1)
+
+    if updated_rows != 1
+      raise Sequel::Plugins::OptimisticLocking::Error.new("Couldn't create version of: #{obj}")
     end
   end
 
+
+  def self.blobify(s)
+    (@pool.database_type == :derby) ? s.to_sequel_blob : s
+  end
 end

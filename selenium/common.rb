@@ -95,6 +95,13 @@ class Selenium::WebDriver::Driver
   end
 
 
+  def find_last_element(*selectors)
+    result = blocking_find_elements(*selectors)
+
+    result[result.length - 1]
+  end
+
+
   def blocking_find_elements(*selectors)
     # Hit with find_element first to invoke our usual retry logic
     find_element(*selectors)
@@ -210,6 +217,13 @@ class Selenium::WebDriver::Element
 
   def containing_subform
     nearest_ancestor('div[contains(@class, "subrecord-form-fields")]')
+  end
+
+
+  def find_last_element(*selectors)
+    result = find_elements(*selectors)
+
+    result[result.length - 1]
   end
 
 
@@ -363,6 +377,7 @@ def admin_backend_request(req)
   admin_session = JSON(res.body)["session"]
 
   req["X-ARCHIVESSPACE-SESSION"] = admin_session
+  req["X-ARCHIVESSPACE-PRIORITY"] = "high"
 
   uri = URI("#{$backend}")
 
@@ -452,6 +467,55 @@ def create_accession(title)
   raise response.body if response.code != '200'
 
   title
+end
+
+
+def create_resource(values = {})
+  if !$test_repo
+    ($test_repo, $test_repo_uri) = create_test_repo("repo_#{Time.now.to_i}_#{$$}", "description")
+  end
+
+  default_values = {:title => "Test Resource #{Time.now.to_i}#{$$}", :id_0 => "#{Time.now.to_i}#{$$}", :level => "collection", :language => "eng", :extents => [{:portion => "whole", :number => "1", :extent_type => "files"}]}
+  values_to_post = default_values.merge(values)
+
+  req = Net::HTTP::Post.new("#{$test_repo_uri}/resources")
+  req.body = values_to_post.to_json
+
+  response = admin_backend_request(req)
+
+  raise response.body if response.code != '200'
+
+  uri = JSON.parse(response.body)['uri']
+
+  [uri, values_to_post[:title]]
+end
+
+
+def create_archival_object(values = {})
+
+  if !$test_repo
+    ($test_repo, $test_repo_uri) = create_test_repo("repo_#{Time.now.to_i}_#{$$}", "description")
+  end
+
+  if not values.has_key?(:resource)
+    # need to create a resource
+    resource_uri, resource_title = create_resource
+    values[:resource] = {:ref => resource_uri}
+  end
+
+  default_values = {:title => "Test Archival Object #{Time.now.to_i}#{$$}", :level => "item"}
+  values_to_post = default_values.merge(values)
+
+  req = Net::HTTP::Post.new("#{$test_repo_uri}/archival_objects")
+  req.body = values_to_post.to_json
+
+  response = admin_backend_request(req)
+
+  raise response.body if response.code != '200'
+
+  uri = JSON.parse(response.body)['uri']
+
+  [uri, values_to_post[:title]]
 end
 
 

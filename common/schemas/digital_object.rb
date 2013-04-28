@@ -1,13 +1,13 @@
 {
   :schema => {
     "$schema" => "http://www.archivesspace.org/archivesspace.json",
+    "version" => 1,
     "type" => "object",
     "parent" => "abstract_archival_object",
     "uri" => "/repositories/:repo_id/digital_objects",
     "properties" => {
 
       "digital_object_id" => {"type" => "string", "maxLength" => 255, "ifmissing" => "error"},
-      "publish" => {"type" => "boolean", "default" => true},
       "level" => {"type" => "string", "dynamic_enum" => "digital_object_level"},
       "digital_object_type" => {
         "type" => "string",

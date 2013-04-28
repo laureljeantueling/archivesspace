@@ -1,6 +1,7 @@
 {
   :schema => {
     "$schema" => "http://www.archivesspace.org/archivesspace.json",
+    "version" => 1,
     "type" => "object",
     "parent" => "abstract_archival_object",
     "uri" => "/repositories/:repo_id/archival_objects",
@@ -8,10 +9,10 @@
       "ref_id" => {"type" => "string", "maxLength" => 255, "pattern" => "\\A[a-zA-Z0-9\\-_:\\.]*\\z"},
       "component_id" => {"type" => "string", "maxLength" => 255, "required" => false, "default" => ""},
 
-      "level" => {"type" => "string", "ifmissing" => "error", "enum" => ["class", "collection", "file", "fonds", "item", "otherlevel", "recordgrp", "series", "subfonds", "subgrp", "subseries"]},
+      "level" => {"type" => "string", "ifmissing" => "error", "dynamic_enum" => "archival_record_level"},
       "other_level" => {"type" => "string", "maxLength" => 255},
 
-      "title" => {"type" => "string", "maxLength" => 32672, "ifmissing" => nil},
+      "title" => {"type" => "string", "maxLength" => 16384, "ifmissing" => nil},
       "title_auto_generate" => {"type" => "boolean", "default" => false},
       
       "internal_only" => {"type" => "boolean", "default" => false},

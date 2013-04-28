@@ -142,8 +142,8 @@ class ApplicationController < ActionController::Base
 
 
   def selected_page
-    if params[:page]
-      page = Integer(params[:page])
+    if params["page"]
+      page = Integer(params["page"])
       if page < 0
         raise "Invalid page value"
       end
@@ -193,6 +193,7 @@ class ApplicationController < ActionController::Base
   def current_vocabulary
     MemoryLeak::Resources.get(:vocabulary).first.to_hash
   end
+
 
   private
 

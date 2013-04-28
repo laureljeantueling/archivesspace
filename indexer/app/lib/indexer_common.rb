@@ -147,6 +147,7 @@ class CommonIndexer
           'processing_priority' => cm['processing_priority'],
           'processing_status' => cm['processing_status'],
           'processing_hours_total' => cm['processing_hours_total'],
+          'processing_funding_source' => cm['processing_funding_source'],
           'processors' => cm['processors'],
           'suppressed' => record['record']['suppressed'].to_s,
           'repository' => get_record_scope(record['uri']),
@@ -293,6 +294,7 @@ class CommonIndexer
       doc['types'] = [record_type]
       doc['fullrecord'] = ASUtils.to_json(values)
       doc['suppressed'] = values['suppressed'].to_s
+      doc['publish'] = values.has_key?('publish') ? values['publish'].to_s : 'false'
       doc['repository'] = get_record_scope(uri)
 
       @document_prepare_hooks.each do |hook|

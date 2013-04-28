@@ -20,26 +20,11 @@ module RecordableCataloging
                   end
                   
 
-      date = JSONModel(:date).from_hash(
-                :label => 'creation', 
-                :date_type => 'single', 
-                :begin => obj.create_time.strftime("%Y-%m-%d"), 
-                :begin_time => obj.create_time.strftime("%H:%M:%S"),
-                )
+      Event.for_cataloging(agent_uri, obj.uri)
 
-      event = JSONModel(:event).from_hash(
-                :linked_agents => [{:ref => agent_uri, :role => 'implementer'}], 
-                :event_type => 'cataloging', 
-                :date => date, 
-                :linked_records => [{:ref => obj.uri, :role => 'outcome'}]
-                )
-
-
-      # Use the global repository to capture events about global records
-      RequestContext.open(:repo_id => 1) do
-
-        event_obj = Event.create_from_json(event)
-      end
+      # Refresh the object from the database here because creating the event
+      # that links to it will have incremented its version number.
+      obj.refresh
 
       obj
     end

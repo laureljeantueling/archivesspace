@@ -1,18 +1,17 @@
 {
   :schema => {
     "$schema" => "http://www.archivesspace.org/archivesspace.json",
+    "version" => 1,
     "type" => "object",
 
     "properties" => {
-      "date_type" => {"type" => "string", "enum" => ["single", "bulk", "inclusive"]},
-      "label" => {"type" => "string", "enum" => ["broadcast", "copyright", "creation", "deaccession", "digitized", "issued", "modified", "publication", "other"], "ifmissing" => "error"},
+      "date_type" => {"type" => "string", "dynamic_enum" => "date_type"},
+      "label" => {"type" => "string", "dynamic_enum" => "date_label", "ifmissing" => "error"},
 
-      "certainty" => {"type" => "string", "enum" => ["approximate", "inferred", "questionable"]},
+      "certainty" => {"type" => "string", "dynamic_enum" => "date_certainty"},
       "expression" => {"type" => "string", "maxLength" => 255},
-      "begin" => {"type" => "string", "maxLength" => 255, "pattern" => "\\A([0-9]{4}(\-(1[0-2]|0[1-9])(\-(0[1-9]|[12][0-9]|3[01]))?)?)\\z"},
-      "begin_time" => {"type" => "string", "maxLength" => 255, "pattern" => "\\A(([0-1]?[0-9])|([2][0-3])):([0-5]?[0-9])(:([0-5]?[0-9]))?\\z"},
-      "end" => {"type" => "string", "maxLength" => 255, "pattern" => "\\A([0-9]{4}(\-(1[0-2]|0[1-9])(\-(0[1-9]|[12][0-9]|3[01]))?)?)\\z"},
-      "end_time" => {"type" => "string", "maxLength" => 255, "pattern" => "\\A(([0-1]?[0-9])|([2][0-3])):([0-5]?[0-9])(:([0-5]?[0-9]))?\\z"},
+      "begin" => {"type" => "string", "maxLength" => 255, "pattern" => "\\A-?([0-9]{4}(\-(1[0-2]|0[1-9])(\-(0[1-9]|[12][0-9]|3[01]))?)?)\\z"},
+      "end" => {"type" => "string", "maxLength" => 255, "pattern" => "\\A-?([0-9]{4}(\-(1[0-2]|0[1-9])(\-(0[1-9]|[12][0-9]|3[01]))?)?)\\z"},
       "era" => {"type" => "string", "dynamic_enum" => "date_era"},
       "calendar" => {"type" => "string", "dynamic_enum" => "date_calendar"},
     },

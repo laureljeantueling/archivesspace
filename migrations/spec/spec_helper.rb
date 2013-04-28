@@ -30,9 +30,13 @@ def stop_backend
 end
 
 
+if ENV['COVERAGE_REPORTS'] == 'true'
+  require 'aspace_coverage'
+  ASpaceCoverage.start('migrations:test')
+end
+
 require_relative "../lib/bootstrap"
 require_relative "../../backend/app/lib/request_context"
-
 
 JSONModel::init( { :strict_mode => true, :enum_source => MockEnumSource, :client_mode => true, :url => $backend_url} )
 
@@ -42,28 +46,6 @@ require_relative 'factories'
 include FactoryGirl::Syntax::Methods
 
 
-if ENV['COVERAGE_REPORTS'] == 'true'
-  require 'tmpdir'
-  require 'pp'
-  require 'simplecov'
-
-  SimpleCov.root(File.join(File.dirname(__FILE__), "../../"))
-  SimpleCov.coverage_dir("migrations/coverage")
-
-  # SimpleCov.start do
-  #   # Exclude everything but the Import code
-  # 
-  # end
-  
-  env_coverage_reports_tmp = ENV['COVERAGE_REPORTS'].clone
-  
-  ENV['COVERAGE_REPORTS'] = nil
-  
-end
-
-
-
-
 def make_test_vocab
   vocab = JSONModel(:vocabulary).from_hash("ref_id" => 'test_vocab',
                                           "name" => "Test Vocabulary")
@@ -71,19 +53,3 @@ def make_test_vocab
   
   vocab.uri
 end
-
-if env_coverage_reports_tmp
-  ENV['COVERAGE_REPORTS'] = env_coverage_reports_tmp
-end
-
-
-
-
-
-
-
-
-
-
-
-

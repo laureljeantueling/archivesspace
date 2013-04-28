@@ -1,6 +1,7 @@
 {
   :schema => {
     "$schema" => "http://www.archivesspace.org/archivesspace.json",
+    "version" => 1,
     "type" => "object",
     "parent" => "abstract_note",
 
@@ -9,27 +10,7 @@
       "type" => {
         "type" => "string",
         "ifmissing" => "error",
-        "enum" => ["accruals",
-                   "appraisal",
-                   "arrangement",
-                   "bioghist",
-                   "accessrestrict",
-                   "userestrict",
-                   "custodhist",
-                   "dimensions",
-                   "altformavail",
-                   "originalsloc",
-                   "fileplan",
-                   "odd",
-                   "acqinfo",
-                   "legalstatus",
-                   "otherfindaid",
-                   "phystech",
-                   "prefercite",
-                   "processinfo",
-                   "relatedmaterial",
-                   "scopecontent",
-                   "separatedmaterial"]
+        "dynamic_enum" => "note_multipart_type"
       },
 
       "subnotes" => {

@@ -1,6 +1,7 @@
 {
   :schema => {
     "$schema" => "http://www.archivesspace.org/archivesspace.json",
+    "version" => 1,
     "type" => "object",
     "uri" => "/repositories/:repo_id/locations",
     "properties" => {
@@ -37,7 +38,7 @@
       "coordinate_3_label" => {"type" => "string", "maxLength" => 255, "required" => false},
       "coordinate_3_indicator" => {"type" => "string", "maxLength" => 255, "required" => false},
 
-      "temporary" => {"type" => "string", "enum" => ["conservation", "exhibit", "loan", "reading_room"]},
+      "temporary" => {"type" => "string", "dynamic_enum" => "location_temporary"},
 
     },
 

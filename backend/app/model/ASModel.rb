@@ -55,7 +55,7 @@ module ASModel
 
       self.class.strict_param_setting = false
 
-      self.update(self.class.prepare_for_db(json.class.schema, updated))
+      self.update(self.class.prepare_for_db(json.class, updated))
 
       obj = self.save
 
@@ -78,13 +78,14 @@ module ASModel
 
       self.class.prepare_for_deletion([self])
 
-      uri = self.uri
-
       super
 
-      Tombstone.create(:uri => uri)
+      uri = self.uri
 
-      RealtimeIndexing.record_delete(uri)
+      if uri
+        Tombstone.create(:uri => uri)
+        RealtimeIndexing.record_delete(uri)
+      end
     end
 
 
@@ -139,10 +140,10 @@ module ASModel
           values["repo_id"] = active_repository
         end
 
-        obj = self.create(prepare_for_db(json.class.schema,
+        obj = self.create(prepare_for_db(json.class,
                                          json.to_hash.merge(values)))
 
-        self.apply_linked_database_records(obj, json)
+        self.apply_linked_database_records(obj, json, true)
 
         fire_update(json, obj)
 
@@ -235,11 +236,11 @@ module ASModel
       # sense for a one-to-one or one-to-many relationship, where we want to
       # delete the object once it becomes unreferenced.
       #
-      def apply_linked_database_records(obj, json)
+      def apply_linked_database_records(obj, json, new_record = false)
         (linked_records[self] or []).each do |linked_record|
 
           # Remove the existing linked records
-          remove_existing_linked_records(obj, linked_record)
+          remove_existing_linked_records(obj, linked_record) if !new_record
 
           # Read the subrecords from our JSON blob and fetch or create
           # the corresponding subrecord from the database.
@@ -261,18 +262,27 @@ module ASModel
             records = [records]
           end
 
+          updated_records = []
           (records or []).each_with_index do |json_or_uri, i|
             next if json_or_uri.nil?
 
             db_record = nil
 
             begin
+              needs_linking = true
+
               if json_or_uri.kind_of? String
                 # A URI.  Just grab its database ID and look it up.
-                        db_record = model[JSONModel(linked_record[:jsonmodel]).id_for(json_or_uri)]
+                db_record = model[JSONModel(linked_record[:jsonmodel]).id_for(json_or_uri)]
+                updated_records << json_or_uri
               else
                 # Create a database record for the JSON blob and return its ID
-                subrecord_json = JSONModel(linked_record[:jsonmodel]).from_hash(json_or_uri)
+                subrecord_json = JSONModel(linked_record[:jsonmodel]).from_hash(json_or_uri, true, true)
+
+                # The value of subrecord_json can be mutated by the various
+                # transformations performed by the model layer.  Make sure we
+                # keep the modified version of the JSON here.
+                updated_records << subrecord_json
 
                 if model.respond_to? :ensure_exists
                   # Give our classes an opportunity to provide their own logic here
@@ -282,6 +292,10 @@ module ASModel
 
                   if linked_record[:association][:key]
                     extra_opts[linked_record[:association][:key]] = obj.id
+
+                    # We'll skip the call to the .add method because this step
+                    # will have already linked the nested record to this one.
+                    needs_linking = false
                   end
 
                   db_record = model.create_from_json(subrecord_json, extra_opts)
@@ -294,7 +308,7 @@ module ASModel
                 obj.mark_as_system_modified
               end
 
-              obj.send(add_record_method, db_record) if db_record
+              obj.send(add_record_method, db_record) if (db_record && needs_linking)
             rescue Sequel::ValidationFailed => e
               # Modify the exception keys by prefixing each with the path up until this point.
               e.instance_eval do
@@ -314,6 +328,8 @@ module ASModel
               raise e
             end
           end
+
+          json[linked_record[:json_property]] = is_array ? updated_records : updated_records[0]
         end
       end
 
@@ -371,6 +387,12 @@ module ASModel
         end
 
         uses_enums(*enums)
+      end
+
+
+      # Does this model have a corresponding JSONModel?
+      def has_jsonmodel?
+        !@jsonmodel.nil?
       end
 
 
@@ -436,6 +458,16 @@ module ASModel
 
   # Hooks for firing behaviour on Sequel::Model events
   module SequelHooks
+
+    # We can save quite a lot of database chatter by only refreshing our
+    # top-level records upon save.  Pure-nested records don't need refreshing,
+    # so skip them.
+    def _save_refresh
+      if self.class.has_jsonmodel? && self.class.my_jsonmodel.schema['uri']
+        _refresh(this.opts[:server] ? this : this.server(:default))
+      end
+    end
+
     def before_create
       self.create_time = Time.now
       self.last_modified = Time.now
@@ -467,7 +499,8 @@ module ASModel
       }
 
 
-      def prepare_for_db(schema, hash)
+      def prepare_for_db(jsonmodel_class, hash)
+        schema = jsonmodel_class.schema
         hash = hash.clone
         schema['properties'].each do |property, definition|
           mapping = JSON_TO_DB_MAPPINGS[definition['type']]
@@ -482,6 +515,8 @@ module ASModel
           # database.
           hash.delete(linked_record[:json_property].to_s)
         end
+
+        hash['json_schema_version'] = jsonmodel_class.schema_version
 
         hash
       end

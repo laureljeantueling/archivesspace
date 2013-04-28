@@ -37,12 +37,9 @@ module JSONSchemaUtils
   SCHEMA_PARSE_RULES =
     [
      {
-       :failed_attribute => ['Properties', 'IfMissing'],
+       :failed_attribute => ['Properties', 'IfMissing', 'ArchivesSpaceSubType'],
        :pattern => /([A-Z]+: )?The property '.*?' did not contain a required property of '(.*?)'.*/,
        :do => ->(msgs, message, path, type, property) {
-
-         schema = ::JSON::Validator.schemas[message[:schema].to_s].schema
-
          if type && type =~ /ERROR/
            msgs[:errors][fragment_join(path, property)] = ["Property is required but was missing"]
          else

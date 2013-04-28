@@ -3,6 +3,11 @@ en:
     title: Archives Space Public
   actions:
     browse: Browse
+  errors:
+    error_404: Record Not Found
+    error_404_message: "The record you've tried to access does not exist or may have been removed."
+    backend_down: Unable to Connect to Database
+    backend_down_message: ArchivesSpace is currently experiencing technical difficulties. We apologise for the inconvenience. Please try again later.
   navbar:
     search_placeholder: Search the Archive
     search_all: All Records
@@ -798,10 +803,6 @@ en:
     language_zun: Zuni
     language_zxx: No linguistic content; Not applicable
     language_zza: Zaza; Dimili; Dimli; Kirdki; Kirmanjki; Zazaki
-  location:
-    _html:
-      singular: Location
-      plural: Locations
   extent: &extent_attributes
     _html:
       plural: Extents
@@ -898,3 +899,37 @@ en:
     _html:
       plural: Repositories
       singular: Repository
+  digital_object: &digital_object_attributes
+    title: Title
+    digital_object_id: Identifier
+    publish: Publish?
+    level: Level
+    digital_object_type: Type
+    language: Language
+    language_tooltip: <p>The language for the digital content.</p>
+    <<: *language_attributes
+    restrictions: Restrictions?
+    _html:
+      singular: Digital Object
+      plural: Digital Objects
+      section:
+        components: Components
+        summary: Summary
+  digital_object_component:
+    <<: *digital_object_attributes
+    label: Label
+    component_id: Identifier
+    _html:
+      singular: Digital Object Component
+      plural: Digital Object Components
+      section:
+        components: Components
+        summary: Summary
+  file_version:
+    _html:
+      plural: File Versions
+      singular: File Version
+  linked_instance:
+    _html:
+      plural: Instance Of
+      singular: Instance Of

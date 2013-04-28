@@ -1,6 +1,7 @@
 {
   :schema => {
     "$schema" => "http://www.archivesspace.org/archivesspace.json",
+    "version" => 1,
     "type" => "object",
     "uri" => "/repositories/:repo_id/events",
     "properties" => {
@@ -23,7 +24,8 @@
         "dynamic_enum" => "event_event_type"
       },
 
-      "date" => {"type" => "JSONModel(:date) object", "ifmissing" => "error"},
+      "date" => {"type" => "JSONModel(:date) object"},
+      "timestamp" => {"type" => "string"},
       "outcome" => {"type" => "string", "dynamic_enum" => "event_outcome"},
       "outcome_note" => {"type" => "string", "maxLength" => 255},
 

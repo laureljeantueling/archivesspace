@@ -1,3 +1,14 @@
+<%
+   digital_objects = {}
+
+   if not @archival_object['instances'].blank?
+     @archival_object['instances'].each do |instance|
+       if instance['instance_type'] === "digital_object"
+         digital_objects[instance['digital_object']['ref']] = instance['digital_object']['_resolved']
+       end
+     end
+   end
+%>
 <div class="title-pane">
   <div class="row-fluid">
     <div class="span3">
@@ -20,6 +31,9 @@
           <% if @archival_object['subjects'].length > 0 %>
             <li><a href="#subjects"><%= I18n.t("subject._html.plural") %> <span class="icon-chevron-right"></span></a></li>
           <% end %>
+          <% if digital_objects.length > 0 %>
+            <li><a href="#digital_objects"><%= I18n.t("digital_object._html.plural") %> <span class="icon-chevron-right"></span></a></li>
+          <% end %>
           <% if @children.length > 0 %>
             <li><a href="#components"><%= I18n.t("archival_object._html.section.components") %> <span class="icon-chevron-right"></span></a></li>
           <% end %>
@@ -32,7 +46,6 @@
           <h3><%= I18n.t("archival_object._html.section.summary") %></h3>
 
           <dl class="dl-horizontal">
-            <%= label_and_value I18n.t("archival_object.ref_id"), @archival_object['ref_id'] %>
             <%= label_and_value I18n.t("archival_object.component_id"), @archival_object['component_id'] %>
             <%= label_and_value I18n.t("archival_object.level"), i18n_enum(:archival_object, 'level', @archival_object['level']) %>
             <%= label_and_value I18n.t("archival_object.language"), i18n_enum(:archival_object, 'language', @archival_object['language']) %>
@@ -60,7 +73,23 @@
                 <li class="result">
                   <h4>
                     <%= icon_for "subject" %>
-                    <%= link_to(subject['_resolved']['title'], {:controller => :site, :action => :search}.merge(params_for_search({"add_filter" => "{!term f=subjects}#{subject['_resolved']['title']}"}))) %>
+                    <%= link_to(subject['_resolved']['title'], {:controller => :search, :action => :search}.merge(params_for_search({"add_filter" => "{!term f=subjects}#{subject['_resolved']['title']}"}))) %>
+                  </h4>
+                </li>
+              <% end %>
+            </ul>
+          </section>
+        <% end %>
+
+        <% if not digital_objects.empty? %>
+          <section id="digital_objects">
+            <h3><%= I18n.t("digital_object._html.plural") %></h3>
+            <ul class="results-list">
+              <% digital_objects.each do |uri, digital_object| %>
+                <li class="result">
+                  <h4>
+                    <%= icon_for "digital_object" %>
+                    <%= link_to digital_object['title'], {:controller => :records, :action => :digital_object, :id => JSONModel(:digital_object).id_for(uri)} %>
                   </h4>
                 </li>
               <% end %>
@@ -77,7 +106,7 @@
                 <li class="result">
                   <h4>
                     <%= icon_for "archival_object" %>
-                    <%= link_to child["title"], :controller => :site, :action => "archival_object", :id => JSONModel(:archival_object).id_for(child['uri']), :repo_id => @repository.id %>
+                    <%= link_to child["title"], :controller => :records, :action => "archival_object", :id => JSONModel(:archival_object).id_for(child['uri']), :repo_id => @repository.id %>
                   </h4>
                 </li>
               <% end %>

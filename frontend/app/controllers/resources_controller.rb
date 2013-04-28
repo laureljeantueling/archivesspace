@@ -6,7 +6,9 @@ class ResourcesController < ApplicationController
   FIND_OPTS = ["subjects", "container_locations", "related_accessions", "linked_agents", "digital_object"]
 
   def index
-    @search_data = JSONModel(:resource).all(:page => selected_page)
+    facets = ["subjects", "publish"]
+
+    @search_data = Search.for_type(session[:repo_id], "resource", search_params.merge({"facet[]" => facets}))
   end
 
   def show
@@ -28,7 +30,7 @@ class ResourcesController < ApplicationController
 
       if acc
         @resource.populate_from_accession(acc)
-        flash.now[:info] = "#{I18n.t("resource._html.messages.spawned")}: #{acc.title}"
+        flash.now[:info] = I18n.t("resource._html.messages.spawned", JSONModelI18nWrapper.new(:accession => acc))
         flash[:spawned_from_accession] = acc.id
       end
     end
@@ -39,6 +41,7 @@ class ResourcesController < ApplicationController
 
   def edit
     @resource = JSONModel(:resource).find(params[:id], "resolve[]" => FIND_OPTS)
+
     fetch_tree
     flash.keep if not flash.empty? # keep the notices so they display on the subsequent ajax call
     return render :partial => "resources/edit_inline" if params[:inline]
@@ -58,7 +61,7 @@ class ResourcesController < ApplicationController
                                 :action => :edit,
                                 :id => id
                               },
-                              :flash => {:success => I18n.t("resource._html.messages.created")})
+                              :flash => {:success => I18n.t("resource._html.messages.created", JSONModelI18nWrapper.new(:resource => @resource))})
                  })
   end
 
@@ -71,7 +74,7 @@ class ResourcesController < ApplicationController
                   render :partial => "edit_inline"
                 },
                 :on_valid => ->(id){
-                  flash.now[:success] = I18n.t("resource._html.messages.updated")
+                  flash.now[:success] = I18n.t("resource._html.messages.updated", JSONModelI18nWrapper.new(:resource => @resource))
                   render :partial => "edit_inline"
                 })
   end

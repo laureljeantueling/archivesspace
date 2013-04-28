@@ -250,7 +250,12 @@ $(function() {
           },
           resultsFormatter: function(item) {
             var string = item.name;
-            return "<li><span class='"+ item.json.jsonmodel_type + "'><span class='icon-token'></span>" + (this.enableHTML ? string : _escapeHTML(string)) + "</span></li>";
+            var $resultSpan = $("<span class='"+ item.json.jsonmodel_type + "'>");
+            $resultSpan.text(string);
+            $resultSpan.prepend("<span class='icon-token'></span>");
+            var $resultLi = $("<li>");
+            $resultLi.append($resultSpan);
+            return $resultLi[0].outerHTML;
           },
           prePopulate: tokensForPrepopulation(),
           onDelete: function() {
@@ -302,7 +307,7 @@ $(document).ready(function() {
 
   $(".linker:not(.initialised)").linker();
 
-  $(document).bind("new.subrecord", function(event, object_name, subform) {
+  $(document).bind("subrecordcreated.aspace", function(event, object_name, subform) {
     $(".linker:not(.initialised)", subform).linker();
   });
 });

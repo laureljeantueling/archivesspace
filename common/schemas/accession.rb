@@ -1,6 +1,7 @@
 {
   :schema => {
     "$schema" => "http://www.archivesspace.org/archivesspace.json",
+    "version" => 1,
     "type" => "object",
     "uri" => "/repositories/:repo_id/accessions",
     "properties" => {
@@ -17,20 +18,20 @@
         }
       },
 
-      "title" => {"type" => "string", "maxLength" => 32672, "minLength" => 1, "ifmissing" => "error"},
+      "title" => {"type" => "string", "maxLength" => 16384, "minLength" => 1, "ifmissing" => "error"},
 
       "id_0" => {"type" => "string", "ifmissing" => "error", "maxLength" => 255},
       "id_1" => {"type" => "string", "maxLength" => 255},
       "id_2" => {"type" => "string", "maxLength" => 255},
       "id_3" => {"type" => "string", "maxLength" => 255},
 
-      "content_description" => {"type" => "string", "maxLength" => 32672},
-      "condition_description" => {"type" => "string", "maxLength" => 32672},
+      "content_description" => {"type" => "string", "maxLength" => 65000},
+      "condition_description" => {"type" => "string", "maxLength" => 65000},
       
-      "disposition" => {"type" => "string", "maxLength" => 32672},
-      "inventory" => {"type" => "string", "maxLength" => 32672},
+      "disposition" => {"type" => "string", "maxLength" => 65000},
+      "inventory" => {"type" => "string", "maxLength" => 65000},
       
-      "provenance" => {"type" => "string", "maxLength" => 32672},
+      "provenance" => {"type" => "string", "maxLength" => 65000},
 
       "accession_date" => {"type" => "date", "minLength" => 1, "ifmissing" => "error"},
       
@@ -88,15 +89,15 @@
       
       "restrictions_apply" => {"type" => "boolean", "default" => false},
 
-      "retention_rule" => {"type" => "string", "maxLength" => 32672},
+      "retention_rule" => {"type" => "string", "maxLength" => 65000},
       
-      "general_note" => {"type" => "string", "maxLength" => 32672},
+      "general_note" => {"type" => "string", "maxLength" => 65000},
       
       "access_restrictions" => {"type" => "boolean", "default" => false},
-      "access_restrictions_note" => {"type" => "string", "maxLength" => 32672},
+      "access_restrictions_note" => {"type" => "string", "maxLength" => 65000},
       
       "use_restrictions" => {"type" => "boolean", "default" => false},
-      "use_restrictions_note" => {"type" => "string", "maxLength" => 32672},
+      "use_restrictions_note" => {"type" => "string", "maxLength" => 65000},
 
       "linked_agents" => {
         "type" => "array",
@@ -106,7 +107,7 @@
           "properties" => {
             "role" => {
               "type" => "string",
-              "enum" => ['creator', 'source', 'subject'],
+              "dynamic_enum" => "linked_agent_role",
               "ifmissing" => "error"
             },
 

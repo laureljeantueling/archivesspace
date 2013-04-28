@@ -6,15 +6,9 @@ module Notes
 
 
   def update_from_json(json, opts = {}, apply_linked_records = true)
-    notes_blob = JSON(json.notes)
-    json.notes = nil
-
-    obj = super
-
-    ps = self.class.dataset.where(:id => self.id).prepare(:update, :update_notes, :notes => :$notes)
-    ps.call(:notes => notes_blob.to_sequel_blob)
-
-    obj
+    self.class.apply_notes(json, proc { |json, opts|
+                             super(json, opts, apply_linked_records)
+                           }, opts)
   end
 
 
@@ -22,20 +16,35 @@ module Notes
   module ClassMethods
 
     def create_from_json(json, opts = {})
+      self.apply_notes(json, proc { |json, opts|
+                         super(json, opts)
+                       }, opts)
+    end
+
+
+    def apply_notes(json, super_callback, opts)
       notes_blob = JSON(json.notes)
-      json.notes = nil
 
-      obj = super
+      if notes_blob.length >= 32000
+        # We need to use prepared statement to store the notes blob once it hits
+        # around 32KB.  This is because Sequel uses string literals and some
+        # databases have an upper limit on how long they're allowed to be.
 
-      ps = self.dataset.where(:id => obj.id).prepare(:update, :update_notes, :notes => :$notes)
-      ps.call(:notes => notes_blob.to_sequel_blob)
+        obj = super_callback.call(json, opts.merge('notes' => nil,
+                                                   'notes_json_schema_version' => json.class.schema_version))
 
-      obj
+        ps = self.dataset.where(:id => obj.id).prepare(:update, :update_notes, :notes => :$notes)
+        ps.call(:notes => DB.blobify(notes_blob))
+      else
+        # Use the standard method for saving the notes (and avoid the extra update)
+        super_callback.call(json, opts.merge('notes' => notes_blob,
+                                             'notes_json_schema_version' => json.class.schema_version))
+      end
     end
 
 
     def sequel_to_jsonmodel(obj, opts = {})
-      notes = ASUtils.json_parse(DB.deblob(obj.notes) || "[]")
+      notes = ASUtils.json_parse(obj.notes || "[]")
       obj[:notes] = nil
       json = super
       json.notes = notes
@@ -44,6 +53,5 @@ module Notes
     end
 
   end
-
 
 end

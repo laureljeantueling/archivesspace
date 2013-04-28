@@ -35,7 +35,9 @@ module ExternalIDs
 
   def update_from_json(json, opts = {}, apply_linked_records = true)
     obj = super
-    self.class.save_external_ids(obj, json, opts)
+    if apply_linked_records
+      self.class.save_external_ids(obj, json, opts) 
+    end
     obj
   end
 
@@ -45,7 +47,7 @@ module ExternalIDs
 
     def create_from_json(json, opts = {})
       obj = super
-      save_external_ids(obj, json, opts)
+      save_external_ids(obj, json, opts, true)
       obj
     end
 
@@ -68,8 +70,8 @@ module ExternalIDs
     end
 
 
-    def save_external_ids(obj, json, opts)
-      obj.remove_all_external_id
+    def save_external_ids(obj, json, opts, new_record = false)
+      obj.remove_all_external_id if !new_record
 
       Array(json['external_ids']).each do |external_id|
         obj.add_external_id(external_id)
