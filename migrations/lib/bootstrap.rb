@@ -27,7 +27,7 @@ unless $test_mode
     JSONModel::init(json_model_opts)
   rescue StandardError => e
       $log.warn("Exception #{e.to_s}")
-    if e.to_s =~ /Connection refused/ && $dry_mode
+    if e.to_s =~ /[C|c]onnection refused/ && $dry_mode
       $log.warn("Cannot connect to the backend, it seems. But since this is a dry run, we'll proceed anyway, using mock terms for controlled vocabularies.")
       json_model_opts[:enum_source] = MockEnumSource
       JSONModel::init( json_model_opts )

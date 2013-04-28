@@ -180,7 +180,8 @@ ASpaceImport::Importer.importer :marcxml do
                  extent.number = node.inner_text.gsub(/[^0-9\\.]/, '')
                  extent.extent_type = node.inner_text.gsub(/^[0-9\\.\\s]+/, '')
                }
-            }
+            },
+            :defaults => {:portion => 'whole'}
           },
         
           # ARRANGEMENT NOTE

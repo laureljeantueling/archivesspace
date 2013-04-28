@@ -95,6 +95,7 @@ ASpaceImport::Importer.importer :ead do
       open_context :extent
       set_property :number, node.inner_xml
       set_property :extent_type, 'reels'
+      set_property :portion, 'whole'
       set_property ancestor(:resource, :archival_object), :extents, proxy
     end
     

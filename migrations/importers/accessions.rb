@@ -92,6 +92,7 @@ ASpaceImport::Importer.importer :accessions do
       
       :extent => {
         :path => 'accession.extents', 
+        :defaults => {:portion => 'whole'}
       },
       
       :acknowledgement_sent_event_date => event_template('acknowledgement_sent'),

@@ -63,8 +63,10 @@ ASpaceImport::Importer.importer :digital_objects do
       },
       
       :extent => {
-        :path => 'digital_object.extents', 
+        :path => 'digital_object.extents',
+        :defaults => {:portion => 'whole'}
       },
+
       
     }
 
