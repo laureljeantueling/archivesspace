@@ -32,9 +32,8 @@ describe 'ASpaceImport' do
   it "can import the file at examples/ead/archon-tracer.xml" do
   
     @opts.merge!({
-            :crosswalk => 'ead', 
             :input_file => '../examples/ead/archon-tracer.xml', 
-            :importer => 'xml'
+            :importer => 'ead'
             })
 
     @i = ASpaceImport::Importer.create_importer(@opts)
@@ -52,9 +51,8 @@ describe 'ASpaceImport' do
   it "can import the file at examples/eac/feynman-richard-phillips-1918-1988-cr.xml" do
   
     @opts.merge!({
-            :crosswalk => 'eac', 
             :input_file => '../examples/eac/feynman-richard-phillips-1918-1988-cr.xml', 
-            :importer => 'xml_dom'
+            :importer => 'eac'
             })
 
     @i = ASpaceImport::Importer.create_importer(@opts)
@@ -72,9 +70,8 @@ describe 'ASpaceImport' do
   it "can import the file at examples/marc/american-communist.xml" do
   
     @opts.merge!({
-            :crosswalk => 'marcxml', 
             :input_file => '../examples/marc/american-communist.xml', 
-            :importer => 'xml'
+            :importer => 'marcxml'
             })
 
     @i = ASpaceImport::Importer.create_importer(@opts)
@@ -85,6 +82,7 @@ describe 'ASpaceImport' do
     result.each do |r|
       r.should match(/^Saved: .*[0-9]$/)
     end
+    result.count.should eq(10)
     
   end
 

@@ -1,3 +1,7 @@
+require_relative '../lib/jsonmodel_wrap'
+require_relative '../lib/parse_queue'  
+require 'csv'
+
 module ASpaceImport
   
   def self.init
@@ -13,9 +17,9 @@ module ASpaceImport
     attr_reader :import_log
 
     def self.list
-      list = "The following importers are available"
+      list = "The following importers are available\n"
       @@importers.each do |i, klass|
-        list += "\t #{klass.name} \t #{klass.profile}"
+        list += "\t #{klass.name} \t #{klass.profile}\n"
       end
       list
     end
@@ -26,13 +30,10 @@ module ASpaceImport
 
     def self.create_importer(opts)
       i = @@importers[opts[:importer].to_sym]
-      if i.usable
-        if opts[:crosswalk]
-          ASpaceImport::Crosswalk.init(opts)
-        end
+      if !i.nil? && i.usable
         i.new opts
       else
-        raise StandardError.new("Unusable importer or importer not found for: #{name}")
+        raise StandardError.new("Unusable importer or importer not found for: #{name}(#{opts[:importer]})")
       end
     end
     
@@ -64,26 +65,38 @@ module ASpaceImport
       true
     end
 
-    def initialize(opts = { })
+    def initialize(opts = {})
       
       raise "Need a repo_id in order to run" unless opts[:repo_id]
       
       unless opts[:log]
         require 'logger'
-        opts[:log] = Logger.new
+        opts[:log] = Logger.new(STDOUT)
       end
       
       if opts[:debug] 
         opts[:log].level = Logger::DEBUG
+      elsif opts[:quiet]
+        opts[:log].level = Logger::UNKNOWN
       else
         opts[:log].level = Logger::WARN 
       end
       
       JSONModel::set_repository(opts[:repo_id])
-    
+
+      @flags = {}    
+      if opts[:importer_flags]
+        opts[:importer_flags].each do |flag|
+          @flags[flag] = true
+        end
+        opts.delete(:importer_flags)
+      end
+        
       opts.each do |k,v|
         instance_variable_set("@#{k}", v)
       end
+      
+      @log.debug("Importer Flags: #{@flags}")
       
       @import_log = []
       @error_log = []
@@ -91,11 +104,19 @@ module ASpaceImport
 
       @parse_queue = ASpaceImport::ParseQueue.new(opts)
     end
+    
+    def parse_queue
+      @parse_queue
+    end
+    
+    def save
+      @parse_queue.save
+    end
+    
 
     def log_save_result(response)
       if response.code.to_s == '200'
         response_body = JSON.parse(response.body)
-        
         @import_summary = "Response Code 200: #{response_body['saved'].length} records saved."
 
         @import_log = response_body['saved'].map {|k,u| "Saved: #{u}"}
@@ -124,7 +145,7 @@ module ASpaceImport
     end
     
     def save_all
-      log_save_result(@parse_queue.save)
+      log_save_result(parse_queue.save)
     end
     
     def report_summary
@@ -176,10 +197,10 @@ module ASpaceImport
     
     # Empty out the parse queue and set any defaults
     def clear_parse_queue
-      while !@parse_queue.empty?
-        @log.debug("SET DEFAULTS #{@parse_queue.last.to_s}")
-        @parse_queue.last.receivers.each { |r| r.receive }
-        @parse_queue.pop
+      while !parse_queue.empty?
+        # @log.debug("SET DEFAULTS #{parse_queue.last.to_s}")
+        # parse_queue.last.receivers.each { |r| r.receive }
+        parse_queue.pop
       end
     end
   end

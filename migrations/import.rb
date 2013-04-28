@@ -4,7 +4,6 @@ require 'optparse'
 options = {:dry => false, 
            :debug => false,
            :relaxed => false, 
-           :verbose => false, 
            :repo_id => 2, 
            :vocab_id => 1}
 
@@ -17,6 +16,10 @@ optparse = OptionParser.new do|opts|
   opts.on( '-d', '--debug', 'Debug mode' ) do
     options[:debug] = true
   end 
+  opts.on( '-f', '--flags FLAG(,FLAG)*', Array, 'Importer-specific flags' ) do|flags|
+    options[:importer_flags] = flags
+  end
+  
   opts.on( '-h', '--help', 'Display this screen' ) do
     puts opts
     exit
@@ -30,8 +33,9 @@ optparse = OptionParser.new do|opts|
   opts.on( '-n', '--dry-run', 'Do a dry run' ) do
     options[:dry] = true
   end
-  opts.on( '-p', '--profile', 'Use the Jruby profiling tools' ) do
-    options[:profile] = true
+
+  opts.on( '-q', '--quiet', 'No logging' ) do
+    options[:quiet] = true
   end
   opts.on( '-r', '--repository REPO-ID', 'Override default repository id') do|repo_id|
     options[:repo_id] = repo_id
@@ -42,17 +46,11 @@ optparse = OptionParser.new do|opts|
   opts.on( '-s', '--source-file PATH', 'Import from file at PATH' ) do|path|
     options[:input_file] = path
   end
-  opts.on( '-v', '--verbose', 'Exude verbosity') do
-    options[:verbose] = true
-  end
-  opts.on( '-x', '--crosswalk KEY', 'Use crosswalk at crosswalks/KEY.yml' ) do|path|
-    options[:crosswalk] = path
-  end
 end
 
 optparse.parse!
 
-$dry_mode = true if options[:dry]
+$dry_mode = true if options[:dry] || options[:list]
 
 if $dry_mode
   require 'mocha/setup'
@@ -64,7 +62,7 @@ require_relative 'lib/bootstrap'
 options[:log] = $log
 
 if options[:list]
-  ASpaceImport::Importer.list
+  puts ASpaceImport::Importer.list
   exit
 end
 
@@ -82,21 +80,8 @@ x = Proc.new do
   end
 end
 
+x.call
 
-if options[:profile]
-  require 'jruby/profiler'
-  $log.debug "Profiling import using the JRuby profiler"
-  
-  profile_data = JRuby::Profiler.profile do
-    x.call
-  end
-  
-  profile_printer = JRuby::Profiler::GraphProfilePrinter.new(profile_data)
-  profile_printer.printProfile(STDOUT)
-
-else
-  x.call
-end
 
 
 
