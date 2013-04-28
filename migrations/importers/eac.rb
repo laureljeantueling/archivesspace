@@ -30,7 +30,8 @@ ASpaceImport::Importer.importer :eac do
             :defaults => {
               :source => 'local',
               :rules => 'local',
-              :primary_name => 'primary name'
+              :primary_name => 'primary name',
+              :name_order => 'direct',
             }
           },
           "descendant::biogHist" => {
