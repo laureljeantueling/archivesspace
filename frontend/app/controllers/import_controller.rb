@@ -80,11 +80,11 @@ class ImportController < ApplicationController
 
         
     options = {:dry => false, 
-               :relaxed => false, 
                :repo_id => session[:repo_id], 
                :vocab_id => '1',
                :importer => importer,
                :importer_flags => flags,
+               :quiet => true,
                :input_file => source_file.path}
 
       i = ASpaceImport::Importer.create_importer(options)    

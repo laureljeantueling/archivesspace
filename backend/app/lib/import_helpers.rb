@@ -134,7 +134,7 @@ module ImportHelpers
     
     def to_hash
       hsh = {'record_title' => nil, 'record_type' => nil, 'error_class' => self.class.name, 'errors' => []}
-      hsh['record_title'] = @invalid_object.title ? @invalid_object.title : "unknown or untitled"
+      hsh['record_title'] = @invalid_object[:title] ? @invalid_object[:title] : "unknown or untitled"
       hsh['record_type'] = @invalid_object.jsonmodel_type ? @invalid_object.jsonmodel_type : "unknown type"
       
       if @error.respond_to?(:errors)

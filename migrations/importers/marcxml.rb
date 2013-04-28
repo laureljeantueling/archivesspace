@@ -40,22 +40,22 @@ ASpaceImport::Importer.importer :marcxml do
         :map => {
           
           #SUBJECTS (UNIFORM)
-          "//datafield[@tag='630']" => subject_template('Uniform title'),
+          "//datafield[@tag='630']" => subject_template('uniform_title'),
           
           #SUBJECTS (TOPICAL)
-          "//datafield[@tag='650']" => subject_template('Topical'),
+          "//datafield[@tag='650']" => subject_template('topical'),
           
           #SUBJECTS (Geographic)
-          "//datafield[@tag='651']" => subject_template('Geographic'),
+          "//datafield[@tag='651']" => subject_template('geographic'),
       
           #SUBJECTS (Genre / form)
-          "//datafield[@tag='655']" => subject_template('Genre / form'),
+          "//datafield[@tag='655']" => subject_template('genre_form'),
           
           # SUBJECTS (Occupation)
-          "//datafield[@tag='656']" => subject_template('Occupation'),
+          "//datafield[@tag='656']" => subject_template('occupation'),
           
           # SUBJECTS (Function)
-          "//datafield[@tag='657']" => subject_template('Function'),
+          "//datafield[@tag='657']" => subject_template('function'),
           
 
           # LINKED AGENTS (CORPORATE)
