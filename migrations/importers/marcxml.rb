@@ -100,7 +100,7 @@ ASpaceImport::Importer.importer :marcxml do
             :map => {
               # NAMES (FAMILY)
               "self::datafield" => {
-                :obj => :name_person,
+                :obj => :name_family,
                 :rel => :names,
                 :map => {  
                   "subfield[@code='a']" => :family_name,
