@@ -1,4 +1,4 @@
-<%= setup_context :title => I18n.t("digital_object._html.plural") %>
+<%= setup_context :title => I18n.t("digital_object._plural") %>
 
 <div class="row-fluid">
   <div class="span3">
@@ -8,10 +8,10 @@
     <div class="record-pane">
       <div class="btn-group pull-right">
         <% if user_can?('update_archival_record') %>
-          <%= link_to "#{I18n.t("actions.create")} #{I18n.t("digital_object._html.singular")}", {:controller => :digital_objects, :action => :new}, :class => "btn" %>
+          <%= link_to "#{I18n.t("actions.create")} #{I18n.t("digital_object._singular")}", {:controller => :digital_objects, :action => :new}, :class => "btn" %>
         <% end %>
       </div>
-      <h2><%= I18n.t("digital_object._html.plural") %></h2>
+      <h2><%= I18n.t("digital_object._plural") %></h2>
 
       <%= render :partial => "shared/flash_messages" %>
 

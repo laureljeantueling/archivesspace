@@ -1,5 +1,5 @@
 <h2>
-  <%= @archival_object.title %> <span class="label label-info"><%= I18n.t("archival_object._html.singular") %></span>
+  <%= @archival_object.title %> <span class="label label-info"><%= I18n.t("archival_object._singular") %></span>
 </h2>
 
 <%= render :partial => "shared/form_messages", :locals => {:form => form} %>
@@ -12,7 +12,7 @@
 
   <% define_template("archival_object", jsonmodel_definition(:archival_object)) do |form| %>
     <section id="basic_information">
-      <h3><%= I18n.t("archival_object._html.section.basic_information") %></h3>
+      <h3><%= I18n.t("archival_object._frontend.section.basic_information") %></h3>
 
       <%= form.label_and_textfield("title", :field_opts => {:automatable => true}, :required => true)%>
     

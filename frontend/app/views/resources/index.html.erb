@@ -1,4 +1,4 @@
-<%= setup_context :title => I18n.t("resource._html.plural") %>
+<%= setup_context :title => I18n.t("resource._plural") %>
 
 <div class="row-fluid">
    <div class="span3">
@@ -8,10 +8,10 @@
      <div class="record-pane">
        <div class="btn-group pull-right">
          <% if user_can?('update_archival_record') %>
-           <%= link_to "#{I18n.t("actions.create")} #{I18n.t("resource._html.singular")}", {:controller => :resources, :action => :new}, :class => "btn" %>
+           <%= link_to "#{I18n.t("actions.create")} #{I18n.t("resource._singular")}", {:controller => :resources, :action => :new}, :class => "btn" %>
          <% end %>
        </div>
-       <h2><%= I18n.t("resource._html.plural") %></h2>
+       <h2><%= I18n.t("resource._plural") %></h2>
 
        <%= render :partial => "shared/flash_messages" %>
 

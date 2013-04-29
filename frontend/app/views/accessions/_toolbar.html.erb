@@ -30,7 +30,7 @@
               </a>
               <ul class="dropdown-menu">
                 <li>
-                  <%= link_to "<span class='icon-resource'></span> #{I18n.t("resource._html.singular")}".html_safe, :controller => :resources, :action => :new, :accession_id => @accession.id %>
+                  <%= link_to "<span class='icon-resource'></span> #{I18n.t("resource._singular")}".html_safe, :controller => :resources, :action => :new, :accession_id => @accession.id %>
                 </li>
               </ul>
             <% end %>

@@ -1,4 +1,4 @@
-<%= setup_context(:title => I18n.t("repository._html.plural")) %>
+<%= setup_context(:title => I18n.t("repository._plural")) %>
 
 <div class="row-fluid">
   <div class="span3">
@@ -11,7 +11,7 @@
           <%= link_to "Create Repository", {:controller => :repositories, :action => :new}, :class => "btn" %>
         <% end %>
       </div>
-      <h2><%= I18n.t("repository._html.plural") %></h2>
+      <h2><%= I18n.t("repository._plural") %></h2>
 
       <%= render :partial => "shared/flash_messages" %>
 

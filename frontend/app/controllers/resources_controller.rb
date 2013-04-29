@@ -30,7 +30,7 @@ class ResourcesController < ApplicationController
 
       if acc
         @resource.populate_from_accession(acc)
-        flash.now[:info] = I18n.t("resource._html.messages.spawned", JSONModelI18nWrapper.new(:accession => acc))
+        flash.now[:info] = I18n.t("resource._frontend.messages.spawned", JSONModelI18nWrapper.new(:accession => acc))
         flash[:spawned_from_accession] = acc.id
       end
     end
@@ -61,7 +61,7 @@ class ResourcesController < ApplicationController
                                 :action => :edit,
                                 :id => id
                               },
-                              :flash => {:success => I18n.t("resource._html.messages.created", JSONModelI18nWrapper.new(:resource => @resource))})
+                              :flash => {:success => I18n.t("resource._frontend.messages.created", JSONModelI18nWrapper.new(:resource => @resource))})
                  })
   end
 
@@ -74,7 +74,7 @@ class ResourcesController < ApplicationController
                   render :partial => "edit_inline"
                 },
                 :on_valid => ->(id){
-                  flash.now[:success] = I18n.t("resource._html.messages.updated", JSONModelI18nWrapper.new(:resource => @resource))
+                  flash.now[:success] = I18n.t("resource._frontend.messages.updated", JSONModelI18nWrapper.new(:resource => @resource))
                   render :partial => "edit_inline"
                 })
   end
