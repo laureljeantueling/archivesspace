@@ -1,3 +1,5 @@
+<%= render :partial => "shared/flash_messages" %>
+
 <div class="form-messages" id="form_messages">
 <% if @exceptions %>
    <script>
@@ -75,9 +77,15 @@
      });
    </script>
 
-   <% if @exceptions.has_key?(:errors) %>
+  <%
+    errors = {}
+    errors.merge!(@exceptions_raw.errors) if @exceptions_raw && @exceptions_raw.errors.length > 0
+    errors.merge!(@exceptions[:errors]) if @exceptions.has_key?(:errors)
+  %>
+
+   <% if errors.length > 0 %>
       <div class="alert alert-error">
-         <% @exceptions[:errors].each do |attr, messages| %>
+         <% errors.each do |attr, messages| %>
             <div class="errors-for-attribute">
               <% messages.each do |msg| %>
                 <div class="error"
@@ -110,7 +118,5 @@
       </div>
    <% end %>
 <% end %>
-
-<%= render :partial => "shared/flash_messages" %>
 
 </div>

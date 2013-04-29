@@ -136,6 +136,7 @@ class ApplicationController < ActionController::Base
     rescue JSONModel::ValidationException => e
       # Throw the form back to the user to display error messages.
       instance_variable_set("@exceptions".intern, obj._exceptions)
+      instance_variable_set("@exceptions_raw".intern, e)
       opts[:on_invalid].call
     end
   end

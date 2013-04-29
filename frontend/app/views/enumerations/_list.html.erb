@@ -16,7 +16,7 @@
     </tr>
     </thead>
     <tbody>
-      <% @enumeration["values"].each do |enum_value| %>
+      <% @enumeration["values"].sort.each do |enum_value| %>
         <tr>
           <td><%= enum_value %></td>
           <td><%= I18n.t("enumerations.#{@enumeration["name"]}.#{enum_value}", :default => enum_value) %></td>

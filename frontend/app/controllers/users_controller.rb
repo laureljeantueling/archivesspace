@@ -80,7 +80,7 @@ class UsersController < ApplicationController
                 },
                 :replace => false,
                 :on_invalid => ->(){
-                  flash[:error] = I18n.t("user._html.messages.error_update")
+                  flash.now[:error] = I18n.t("user._html.messages.error_update")
                   @groups = JSONModel(:group).all if user_can?('manage_users')
 
                   render :action => :edit_groups
@@ -107,7 +107,7 @@ class UsersController < ApplicationController
                   end
                 },
                 :on_invalid => ->(){
-                  flash[:error] = I18n.t("user._html.messages.error_create")
+                  flash.now[:error] = I18n.t("user._html.messages.error_create")
                   render :action => "new"
                 },
                 :on_valid => ->(id){
