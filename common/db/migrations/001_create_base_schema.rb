@@ -1,4 +1,4 @@
-sequel.extension :inflector
+Sequel.extension :inflector
 
 module MigrationUtils
   def self.shorten_table(name)
