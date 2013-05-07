@@ -1990,4 +1990,33 @@ describe "ArchivesSpace user interface" do
     end
   end
 
+
+  describe "Search" do
+
+    before(:all) do
+      login_as_repo_manager
+    end
+
+
+    after(:all) do
+      logout
+    end
+
+
+    it "supports global searches" do
+      $driver.find_element(:id, 'global-search-button').click
+      assert(5) { $driver.find_element_with_text("//h2", /Search Results/) }
+    end
+
+
+    it "supports filtering global searches by type" do
+      $driver.find_element(:id, 'global-search-button').click
+      $driver.find_element(:link, "Repository").click
+      assert(5) { $driver.find_element_with_text("//h5", /Filtered By/) }
+      assert(5) { $driver.find_element_with_text("//a", /Record Type: Repository/) }
+      assert(5) { $driver.find_element_with_text('//div', /Showing 1 - 1 of 1 Results/) }
+    end
+
+  end
+
 end
