@@ -78,6 +78,33 @@ describe 'ArchivalObject model' do
   end
 
 
+  it "will generate a title if requested and a date is provided" do
+    opts = {
+      :title_auto_generate => true,
+      :title => "", 
+      :dates => [{
+                   "date_type" => "single",
+                   "label" => "creation",
+                   "begin" => generate(:yyyy_mm_dd),
+                   "end" => generate(:yyyy_mm_dd),
+                 }]
+    }
+
+    ao = ArchivalObject.create_from_json(build(:json_archival_object, opts),
+                                         :repo_id => $repo_id)
+
+    ArchivalObject[ao[:id]].title.should_not be_nil
+  end
+
+
+  it "reports an error if asked generate a title where no date is provided" do
+    opts = {:title_auto_generate => true, :title => ""}
+    expect { ArchivalObject.create_from_json(build(:json_archival_object, opts),
+                                             :repo_id => $repo_id)
+    }.to raise_error(JSONModel::ValidationException)
+  end
+
+
   it "throws an error if 'level' is 'otherlevel' and 'other level' isn't provided" do
 
     opts = {:level => "otherlevel", :other_level => nil}
