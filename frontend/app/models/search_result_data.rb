@@ -71,10 +71,16 @@ class SearchResultData
 
   def facet_label_string(facet_group, facet)
     return I18n.t("#{facet}._html.singular", :default => facet) if facet_group === "primary_type"
-    return I18n.t("enumerations.name_source.#{facet}", :default => facet) if facet_group === "source"
     return I18n.t("enumerations.name_rule.#{facet}", :default => facet) if facet_group === "rules"
     return I18n.t("boolean.#{facet.to_s}", :default => facet) if facet_group === "publish"
     return I18n.t("enumerations.digital_object_digital_object_type.#{facet.to_s}", :default => facet) if facet_group === "digital_object_type"
+    if facet_group === "source"
+      if single_type? and types[0] === "subject"
+        return I18n.t("enumerations.subject_source.#{facet}", :default => facet)
+      else
+        return I18n.t("enumerations.name_source.#{facet}", :default => facet)
+      end
+    end
     if facet_group === "level"
         if single_type? and types[0] === "digital_object"
           return I18n.t("enumerations.digital_object_level.#{facet.to_s}", :default => facet)
@@ -177,7 +183,7 @@ class SearchResultData
   end
 
   def self.SUBJECT_FACETS
-    []
+    ["source"]
   end
 
 end
