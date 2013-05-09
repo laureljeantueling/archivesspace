@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe 'ArchivalObject model' do
 
-  it "Allows archival objects to be created" do
+  it "allows archival objects to be created" do
     ao = ArchivalObject.create_from_json(
                                           build(
                                                 :json_archival_object,
@@ -14,12 +14,12 @@ describe 'ArchivalObject model' do
   end
 
 
-  it "Allow multiple archival objects to be created without conflicts" do
+  it "allows multiple archival objects to be created without conflicts" do
     create_list(:json_archival_object, 5)
   end
 
 
-  it "Allows archival objects to be created with an extent" do
+  it "allow archival objects to be created with an extent" do
     
     opts = {:extents => [{
       "portion" => "whole",
@@ -35,7 +35,7 @@ describe 'ArchivalObject model' do
   end
 
 
-  it "Allows archival objects to be created with a date" do
+  it "allows archival objects to be created with a date" do
     
     opts = {:dates => [{
          "date_type" => "single",
@@ -53,7 +53,7 @@ describe 'ArchivalObject model' do
   end
 
 
-  it "Allows archival objects to be created with an instance" do
+  it "allows archival objects to be created with an instance" do
     
     opts = {:instances => [{
          "instance_type" => generate(:instance_type),
@@ -78,9 +78,8 @@ describe 'ArchivalObject model' do
   end
 
 
-  it "will generate a title if requested and a date is provided" do
+  it "will generate a label if requested" do
     opts = {
-      :title_auto_generate => true,
       :title => "", 
       :dates => [{
                    "date_type" => "single",
@@ -93,15 +92,7 @@ describe 'ArchivalObject model' do
     ao = ArchivalObject.create_from_json(build(:json_archival_object, opts),
                                          :repo_id => $repo_id)
 
-    ArchivalObject[ao[:id]].title.should_not be_nil
-  end
-
-
-  it "reports an error if asked generate a title where no date is provided" do
-    opts = {:title_auto_generate => true, :title => ""}
-    expect { ArchivalObject.create_from_json(build(:json_archival_object, opts),
-                                             :repo_id => $repo_id)
-    }.to raise_error(JSONModel::ValidationException)
+    ArchivalObject[ao[:id]].label.should_not be_nil
   end
 
 
