@@ -23,10 +23,10 @@ describe 'Repository controller' do
 
   it "supports updating a repository" do
     repo = create(:json_repo)
-    repo.email = "helpme@myrepository.org"
+    repo.name = "A new name"
     repo.save
 
-    JSONModel(:repository).find(repo.id).email.should eq("helpme@myrepository.org")
+    JSONModel(:repository).find(repo.id).name.should eq("A new name")
   end
 
 
