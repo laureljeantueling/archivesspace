@@ -28,6 +28,7 @@ class CommonIndexer
     @document_prepare_hooks = []
     @extra_documents_hooks = []
     @delete_hooks = []
+    @batch_hooks = []
     @current_session = nil
 
     while true
@@ -82,7 +83,7 @@ class CommonIndexer
   def configure_doc_rules
     add_document_prepare_hook {|doc, record|
       if doc['primary_type'] == 'archival_object'
-        doc['resource'] = record['record']['resource']
+        doc['resource'] = record['record']['resource']['ref']
         doc['title'] = record['record']['label']
       end
     }
@@ -213,6 +214,11 @@ class CommonIndexer
 
   def add_extra_documents_hook(&block)
     @extra_documents_hooks << block
+  end
+
+
+  def add_batch_hook(&block)
+    @batch_hooks << block
   end
 
 
@@ -354,13 +360,22 @@ class CommonIndexer
       end
     end
 
+
+    # Allow hooks to operate on the entire batch if desired
+    @batch_hooks.each_with_index do |hook|
+      batch = hook.call(batch)
+    end
+
+
     if !batch.empty?
       # For any record we're updating, delete any child records first
-      req = Net::HTTP::Post.new("/update")
-      req['Content-Type'] = 'application/json'
-      req.body = {:delete => {'query' => "parent_id:(" + batch.map {|e| "\"#{e['id']}\""}.join(" OR ") + ")"}}.to_json
+      batch.each_slice(512) do |batch|
+        req = Net::HTTP::Post.new("/update")
+        req['Content-Type'] = 'application/json'
+        req.body = {:delete => {'query' => "parent_id:(" + batch.map {|e| "\"#{e['id']}\""}.join(" OR ") + ")"}}.to_json
 
-      response = do_http_request(solr_url, req)
+        do_http_request(solr_url, req)
+      end
 
       # Now apply the updates
       req = Net::HTTP::Post.new("/update")
