@@ -968,10 +968,6 @@ describe "ArchivesSpace user interface" do
         $driver.clear_and_send_keys([:id, "digital_object_title_"],("I can't believe this is DO number #{c += 1}"))
         $driver.clear_and_send_keys([:id, "digital_object_digital_object_id_"],(Digest::MD5.hexdigest("#{Time.now}")))
         
-        $driver.find_element(:css => "section#digital_object_file_versions_ > h3 > input.btn").click
-        
-        $driver.clear_and_send_keys([:id, "digital_object_file_versions__0__file_uri_"], "/uri/for/this/file/version")
-        
         $driver.find_element(:css => "form#new_digital_object button[type='submit']").click
       end
       run_index_round
