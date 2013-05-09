@@ -101,35 +101,29 @@ class PeriodicIndexer < CommonIndexer
                                         'resolve[]' => @@resolved_attributes,
                                         :modified_since => modified_since)
 
-          # unlimited results return an array
+          # Unlimited results return an array.  Fake pagination.
           if records.kind_of? Array
-            index_records(records.map {|record|
-                            if !record['last_modified'] ||
-                                (Time.parse(record['last_modified']).to_i >= modified_since)
-                              {
-                                'record' => record.to_hash(:trusted),
-                                'uri' => record.uri
-                              }
-                            end
-                          }.compact)
-            break
-
-          # paginated results return an object
-          else
-            if !records['results'].empty?
-              did_something = true
-            end
-  
-            index_records(records['results'].map {|record|
-                            {
-                              'record' => record.to_hash(:trusted),
-                              'uri' => record.uri
-                            }
-                          })
-  
-            break if records['last_page'] <= page
-            page += 1
+            records = {
+              'results' => records.reject {|record|
+                record['last_modified'] && Time.parse(record['last_modified']).to_i < modified_since
+              },
+              'last_page' => 1
+            }
           end
+
+          if !records['results'].empty?
+            did_something = true
+          end
+
+          index_records(records['results'].map {|record|
+                          {
+                            'record' => record.to_hash(:trusted),
+                            'uri' => record.uri
+                          }
+                        })
+
+          break if records['last_page'] <= page
+          page += 1
         end
 
         checkpoints << [repository, type, start]
