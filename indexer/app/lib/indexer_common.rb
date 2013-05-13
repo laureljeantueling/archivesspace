@@ -129,7 +129,7 @@ class CommonIndexer
 
     add_document_prepare_hook {|doc, record|
       if doc['primary_type'] == 'digital_object_component'
-        doc['digital_object'] = record['record']['digital_object']
+        doc['digital_object'] = record['record']['digital_object']['ref']
       end
     }
 
