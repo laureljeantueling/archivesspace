@@ -49,6 +49,80 @@ class PeriodicIndexer < CommonIndexer
   # prior to the check.
   WINDOW_SECONDS = 30
 
+
+  def load_tree_docs(tree, result, root_uri, path_to_root = [])
+    this_node = tree.reject {|k, v| k == 'children'}
+
+    result << {
+      'id' => "tree_view_#{tree['record_uri']}",
+      'primary_type' => 'tree_view',
+      'exclude_by_default' => 'true',
+      'node_uri' => tree['record_uri'],
+      'root_uri' => root_uri,
+      'tree_json' => ASUtils.to_json(:self => this_node,
+                                     :path_to_root => path_to_root,
+                                     :direct_children => tree['children'].map {|child|
+                                       child.reject {|k, v| k == 'children'}
+                                     })
+    }
+
+    tree['children'].each do |child|
+      load_tree_docs(child, result, root_uri, path_to_root + [this_node])
+    end
+  end
+
+
+  def delete_trees_for(resource_uris)
+    return if resource_uris.empty?
+
+    resource_uris.each_slice(512) do |resource_uris|
+      req = Net::HTTP::Post.new("/update")
+      req['Content-Type'] = 'application/json'
+
+      delete_request = {'delete' => {'query' => "primary_type:tree_view AND root_uri:(#{resource_uris.join(' OR ')})"}}
+
+      req.body = delete_request.to_json
+
+      response = do_http_request(solr_url, req)
+
+      if response.code != '200'
+        raise "Error when deleting record trees: #{response.body}"
+      end
+    end
+  end
+
+
+  @processed_trees = []
+
+  def configure_doc_rules
+    super
+
+    add_batch_hook {|batch|
+      resources = batch.map {|rec| rec['primary_type'] == 'archival_object' ? rec['resource'] : nil}.compact.uniq
+
+      # Don't reprocess trees we've already covered during previous batches
+      resources -= @processed_trees
+
+      ## Each resource needs its tree indexed
+
+      # Delete any existing versions
+      delete_trees_for(resources)
+
+      # Add the updated versions
+      tree_docs = []
+
+      resources.each do |resource_uri|
+        id = JSONModel(:resource).id_for(resource_uri)
+        tree = JSONModel(:resource_tree).find(nil, :resource_id => id)
+
+        load_tree_docs(tree.to_hash(:trusted), tree_docs, resource_uri)
+        @processed_trees << resource_uri
+      end
+
+      batch.concat(tree_docs)
+    }
+  end
+
   def initialize(state = nil)
     super(AppConfig[:backend_url])
     @state = state || IndexState.new
@@ -86,6 +160,9 @@ class PeriodicIndexer < CommonIndexer
 
     login
 
+    # Set the list of tree URIs back to empty to start over again
+    @processed_trees = []
+
     JSONModel(:repository).all.each do |repository|
       JSONModel.set_repository(repository.id)
 
@@ -101,35 +178,29 @@ class PeriodicIndexer < CommonIndexer
                                         'resolve[]' => @@resolved_attributes,
                                         :modified_since => modified_since)
 
-          # unlimited results return an array
+          # Unlimited results return an array.  Fake pagination.
           if records.kind_of? Array
-            index_records(records.map {|record|
-                            if !record['last_modified'] ||
-                                (Time.parse(record['last_modified']).to_i >= modified_since)
-                              {
-                                'record' => record.to_hash(:trusted),
-                                'uri' => record.uri
-                              }
-                            end
-                          }.compact)
-            break
-
-          # paginated results return an object
-          else
-            if !records['results'].empty?
-              did_something = true
-            end
-  
-            index_records(records['results'].map {|record|
-                            {
-                              'record' => record.to_hash(:trusted),
-                              'uri' => record.uri
-                            }
-                          })
-  
-            break if records['last_page'] <= page
-            page += 1
+            records = {
+              'results' => records.reject {|record|
+                record['last_modified'] && Time.parse(record['last_modified']).to_i < modified_since
+              },
+              'last_page' => 1
+            }
           end
+
+          if !records['results'].empty?
+            did_something = true
+          end
+
+          index_records(records['results'].map {|record|
+                          {
+                            'record' => record.to_hash(:trusted),
+                            'uri' => record.uri
+                          }
+                        })
+
+          break if records['last_page'] <= page
+          page += 1
         end
 
         checkpoints << [repository, type, start]
