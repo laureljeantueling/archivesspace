@@ -109,8 +109,8 @@ describe "ArchivesSpace user interface" do
     end
 
 
-    it "paginates the list when more than 10 repositories" do
-      10.times.each do |i|
+    it "paginates the list when more than a page of repositories" do
+      AppConfig[:default_page_size].to_i.times.each do |i|
         create_test_repo("quickrepofortesting#{i}_#{Time.now.to_i}_#{$$}",
                          "quickrepofortesting#{i}_#{Time.now.to_i}_#{$$}",
                          false)
