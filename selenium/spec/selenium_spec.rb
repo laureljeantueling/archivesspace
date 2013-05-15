@@ -1944,7 +1944,40 @@ describe "ArchivesSpace user interface" do
     after(:all) do
       logout
     end
-    
+
+
+    it "lets you add a new value to an enumeration" do
+      $driver.find_element(:link, 'System').click
+      $driver.find_element(:link, "Manage Enumerations").click
+      
+      enum_select = $driver.find_element(:id => "enum_selector")
+      enum_select.select_option_with_text("accession_acquisition_type")
+      
+      # Wait for the table of enumerations to load
+      $driver.find_element(:css, '.enumeration-list')
+
+      $driver.find_element(:link, 'Create Value').click
+      $driver.clear_and_send_keys([:id, "enumeration_value_"], "manna\n")
+
+      $driver.find_element_with_text('//td', /^manna$/)
+    end
+
+
+    it "lets you delete a value from an enumeration" do
+      manna = $driver.find_element_with_text('//tr', /manna/)
+      manna.find_element(:link, 'Delete').click
+
+      $driver.find_element(:css => "form#delete_enumeration input[type='submit']").click
+
+      $driver.find_element_with_text('//div', /Enumeration Value Deleted/)
+    end
+
+
+    it "lets you merge one value into another in an enumeration" do
+      # write this test!
+    end
+
+
     it "lets you set a default enumeration (date_type)" do
       $driver.find_element(:link, 'System').click
       $driver.find_element(:link, "Manage Enumerations").click
