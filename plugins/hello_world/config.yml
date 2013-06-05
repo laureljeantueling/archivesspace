@@ -1,0 +1,10 @@
+parents:
+  accession:
+    name: hello_world
+    cardinality: zero_to_many
+  resource:
+    name: hello_world
+    cardinality: zero_to_many
+  digital_object:
+    name: hello_world
+    cardinality: zero_to_many

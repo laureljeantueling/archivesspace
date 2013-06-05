@@ -3,10 +3,19 @@ Sequel.migration do
 
     create_table(:whosaidhello) do
       primary_key :id
+
+      Integer :accession_id, :null => true
+
       String :name, :null => false
-      DateTime :create_time, :null => false
-      DateTime :system_mtime, :null => false, :index => true
-      DateTime :user_mtime, :null => false, :index => true
+
+      apply_mtime_columns
+    end
+
+
+    alter_table(:whosaidhello) do
+#      add_foreign_key([:repo_id], :repository, :key => :id)
+
+      add_foreign_key([:accession_id], :accession, :key => :id)
     end
 
   end
